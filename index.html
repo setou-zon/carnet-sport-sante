@@ -4,20 +4,34 @@
 <title>Carnet Sport Santé</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#00703C">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sport Santé">
 <meta charset="utf-8">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
 /* Layout: the carnet's own system (navy + orange, condensed caps titles). One working column; list of participants, then the participant's carnet as collapsible pages with a sticky evaluation bar. */
 :root{
-  --bg:#FFFFFF; --surface:#FFFFFF; --fg:#1E2933; --muted:#66707A; --line:#DDE3EA; --track:#EEF2F6; --field:#F7F9FB;
-  --navy:#1B3350; --navy-fg:#FFFFFF; --orange:#D9692A; --rust:#B5521B;
-  --box:#E3EAF2; --peach:#FBE3D3; --ok:#2E7D4F; --danger:#B3261E; --ink:#1F4FA0;
-  --s1:#A9BCD3; --s2:#5B7DA6; --s3:#1B3350;
+  --bg:#FFFFFF; --surface:#FFFFFF; --fg:#1E2933; --muted:#66707A; --line:#DCE3DE; --track:#EEF3EF; --field:#FFFFFF;
+  /* Drapeau du Burkina Faso : rouge #EF2B2D, vert #009E49, étoile jaune #FCD116 (teintes foncées pour le texte) */
+  --navy:#00703C; --navy-fg:#FFFFFF; --orange:#C8102E; --rust:#A50E21; --yellow:#FCD116; --flag-red:#EF2B2D; --flag-green:#009E49;
+  --box:#EAF5EE; --peach:#FFF6D6; --ok:#00703C; --danger:#9B1C1C; --ink:#1F4FA0;
+  --s1:#BFE3CB; --s2:#4FAE78; --s3:#00703C;
   --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
 }
+.flagband{position:fixed;left:0;right:0;top:0;z-index:20;height:6px;background:linear-gradient(var(--flag-red) 50%,var(--flag-green) 50%)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{flex:none;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+.install{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--peach);border:1px solid #F2DA7A;border-radius:10px;padding:10px 12px;font-size:.88rem}
+.install .sp{flex:1;min-width:8em}
 *{box-sizing:border-box} [hidden]{display:none!important} html{color-scheme:light} body{margin:0}
 body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);padding:0 16px}
 .auth{max-width:420px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}
@@ -29,7 +43,7 @@ body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);padding:0 
 .evrow .em{color:var(--muted);font-size:.78rem}
 .pill{font:600 .72rem var(--f-body);padding:2px 8px;border-radius:99px}
 .pill.on{background:var(--box);color:var(--ok)} .pill.off{background:var(--peach);color:var(--orange)}
-.wrap{max-width:760px;margin:0 auto;padding-block:18px 96px;display:flex;flex-direction:column;gap:16px}
+.wrap{max-width:760px;margin:0 auto;padding-block:24px 96px;display:flex;flex-direction:column;gap:16px}
 h1,h2,h3{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.01em;margin:0;color:var(--navy);text-wrap:balance}
 h1{font-size:2rem;line-height:1}
 h2{font-size:1.35rem}
@@ -66,7 +80,7 @@ textarea{min-height:64px;resize:vertical}
 .evalbar .lbl{font:600 .72rem var(--f-body);text-transform:uppercase;letter-spacing:.08em;opacity:.85}
 .seg{display:flex;background:rgba(255,255,255,.14);border-radius:7px;padding:3px;gap:2px}
 .seg button{border:0;background:none;color:inherit;font:600 .85rem var(--f-body);padding:6px 10px;border-radius:5px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--orange);color:#fff}
+.seg button[aria-pressed="true"]{background:var(--yellow);color:#1E2933}
 .evalbar input{width:auto;background:rgba(255,255,255,.95);color:#1E2933;border:0;padding:6px 8px}
 .evalbar .state{margin-left:auto;font-size:.8rem;opacity:.9}
 details.page{background:var(--surface);border:1px solid var(--line);border-radius:10px}
@@ -148,9 +162,15 @@ table.dt .n{color:var(--muted);font-size:.72rem}
 </head>
 <body>
 <div class="wrap">
+  <div class="flagband" aria-hidden="true"></div>
+  <div class="install" id="install-bar" hidden>
+    <span class="sp" id="install-txt">Installez l'application sur cet appareil pour l'ouvrir comme une app, en plein écran.</span>
+    <button class="btn primary" id="install-btn">Installer</button>
+    <button class="linkbtn" id="install-close">Plus tard</button>
+  </div>
   <div class="top">
     <div>
-      <div class="eyebrow">MSJE / DGSL / DST · Sport pour tous</div>
+      <div class="brand"><svg width="30" height="20" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="10" fill="#EF2B2D"/><rect y="10" width="30" height="10" fill="#009E49"/><polygon fill="#FCD116" points="15,5.2 16.12,8.66 19.76,8.66 16.82,10.8 17.94,14.26 15,12.12 12.06,14.26 13.18,10.8 10.24,8.66 13.88,8.66"/></svg><div class="eyebrow">MSJE / DGSL / DST · Sport pour tous</div></div>
       <h1>Carnet Sport Santé</h1>
       <p class="sub" id="topsub">Saisie des évaluations et remise du carnet au participant.</p>
     </div>
@@ -836,6 +856,22 @@ async function start(){
   $("role").innerHTML = isAdmin?`<b>${esc(myName)}</b> · administrateur`:`<b>${esc(myName)}</b> · évaluateur · vous voyez les carnets de toute l'équipe`;
   view("list"); await loadAll();
 }
+/* ---------- PWA : installation et mode hors ligne de l'interface ---------- */
+let deferredPrompt=null;
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const dismissed = () => { try{ return localStorage.getItem("install-dismissed")==="1"; }catch{ return false; } };
+if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredPrompt=e; if(!isStandalone() && !dismissed()) $("install-bar").hidden=false; });
+window.addEventListener("appinstalled",()=>{ $("install-bar").hidden=true; deferredPrompt=null; });
+$("install-btn").onclick=async()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice.catch(()=>{}); deferredPrompt=null; $("install-bar").hidden=true; };
+$("install-close").onclick=()=>{ $("install-bar").hidden=true; try{ localStorage.setItem("install-dismissed","1"); }catch{} };
+if(/iphone|ipad|ipod/i.test(navigator.userAgent) && !isStandalone() && !dismissed()){
+  $("install-txt").textContent="Pour installer l'application sur iPhone ou iPad : touchez le bouton Partager, puis « Sur l'écran d'accueil ».";
+  $("install-btn").hidden=true; $("install-bar").hidden=false;
+}
+
 if(!sb){ document.querySelector(".wrap").insertAdjacentHTML("beforeend",'<p class="msg err">Connexion au serveur impossible. Vérifiez votre connexion internet puis rechargez la page.</p>'); }
 else start();
 </script>
