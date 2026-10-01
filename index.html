@@ -62,6 +62,7 @@ h2{font-size:1.35rem}
 /* list */
 .toolbar{display:flex;gap:8px;flex-wrap:wrap}
 .toolbar input{flex:1;min-width:0}
+input.ro{background:var(--box);font-weight:600;letter-spacing:.03em}
 input,select,textarea{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%;min-width:0}
 textarea{min-height:64px;resize:vertical}
 .plist{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -289,7 +290,7 @@ const PROG = ["Activité physique de la vie quotidienne","AP en endurance","AP e
 /* ---------- schema (mirrors the carnet pages) ---------- */
 const SECTIONS = [
  {id:"profil",t:"Profil & avis médical",n:2,f:[
-  {k:"code",l:"Code",req:1},{k:"nom",l:"Nom et prénom(s)",req:1},
+  {k:"code",l:"Code",ro:1,h:"Attribué automatiquement à l'enregistrement (ex. SS-2026-0001)"},{k:"nom",l:"Nom et prénom(s)",req:1},
   {k:"age",l:"Âge (ans)",ty:"num"},{k:"sexe",l:"Sexe",ty:"radio",o:["H","F"]},
   {k:"contact",l:"Contact (téléphone)",ty:"tel",h:"Sert à l'envoi par WhatsApp"},{k:"email",l:"Email",ty:"email",h:"Facultatif, non imprimé"},
   {k:"taille",l:"Taille (cm)",ty:"num",h:"Non imprimée, sert au calcul de l'IMC"},
@@ -363,7 +364,8 @@ function fieldHTML(d){
   if(d.ty==="area") return `<label class="${cls}">${lab}<textarea id="${id}" data-k="${d.k}"></textarea>${hint}</label>`;
   const type = d.ty==="date"?"date":d.ty==="tel"?"tel":d.ty==="email"?"email":"text";
   const im = d.ty==="num"?' inputmode="decimal"':"";
-  return `<label class="${cls}">${lab}<input type="${type}" id="${id}" data-k="${d.k}"${im} autocomplete="off">${hint}</label>`;
+  const ro = d.ro?' readonly tabindex="-1" placeholder="Automatique" class="ro"':"";
+  return `<label class="${cls}">${lab}<input type="${type}" id="${id}" data-k="${d.k}"${im}${ro} autocomplete="off">${hint}</label>`;
 }
 function perHTML(sec){
   return sec.per.map(g=>`${g.t?`<div class="subh">${esc(g.t)}</div>`:""}<div class="ptable">${g.r.map(([k,l,u,kind])=>{
@@ -436,18 +438,19 @@ document.querySelectorAll("#seg button").forEach(b=>b.onclick=()=>{ period=b.dat
 function markDirty(){ dirty=true; $("savestate").textContent="Modifications en cours…"; clearTimeout(saveTimer); saveTimer=setTimeout(save,1200); }
 async function save(){
   if(!cur) return false;
-  if(!cur.f.code && !cur.f.nom){ $("savestate").textContent="Renseignez le code ou le nom pour enregistrer"; return false; }
+  if(!cur.f.nom){ $("savestate").textContent="Renseignez le nom pour enregistrer"; return false; }
   if(!db){ $("savestate").textContent="Base indisponible : rien n'est enregistré"; return false; }
   if(saving){ again=true; return false; }
   saving=true; clearTimeout(saveTimer);
   const row = {id:cur.id, f:JSON.parse(JSON.stringify(cur.f)), p:JSON.parse(JSON.stringify(cur.p)), updated_at:new Date().toISOString()};
   try{
     const q = cur._exists ? db.from("participants").update(row).eq("id",cur.id).select("id")
-                          : db.from("participants").insert({...row, owner:cur.owner||myId}).select("id");
+                          : db.from("participants").insert({...row, owner:cur.owner||myId}).select("id,f");
     const {data,error} = await q;
     if(error) throw error;
     if(!data || !data.length) throw {code:"denied"};
-    cur._exists = true; dirty=false; $("savestate").textContent="Enregistré ✓";
+    if(data[0].f && data[0].f.code && data[0].f.code!==cur.f.code){ cur.f.code=data[0].f.code; $("f-code").value=cur.f.code; $("f-title").textContent=[cur.f.nom,cur.f.code].filter(Boolean).join(" · "); }
+    cur._exists = true; dirty=false; $("savestate").textContent="Enregistré ✓"+(cur.f.code?" · code "+cur.f.code:"");
     upsertLocal();
   }
   catch(err){
@@ -483,10 +486,11 @@ $("del-yes").onclick = async () => {
 };
 $("finish").onclick = async () => {
   const m=$("foot-msg"); m.className="msg err";
-  if(!cur.f.code||!cur.f.nom){ m.textContent="Renseignez le code participant et le nom (page Mon profil)."; $("sec-profil").open=true; $("f-code").focus(); return; }
+  if(!cur.f.nom){ m.textContent="Renseignez le nom et prénom (page Profil & avis médical)."; $("sec-profil").open=true; $("f-nom").focus(); return; }
   $("finish").disabled=true; m.className="msg"; m.textContent="Enregistrement…";
   const ok = await save(); $("finish").disabled=false;
   if(!ok && dirty){ m.className="msg err"; m.textContent="Le carnet n'a pas pu être enregistré. Réessayez."; return; }
+  if(!cur.f.code){ m.className="msg err"; m.textContent="Le code n'a pas encore été attribué. Vérifiez la connexion puis réessayez."; return; }
   m.textContent=""; openResult();
 };
 
