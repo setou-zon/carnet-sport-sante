@@ -343,8 +343,8 @@ const SECTIONS = [
 ];
 
 /* ---------- state ---------- */
-const SUPABASE_URL = "https://hicovbnhwznexmvaqani.supabase.co";
-const SUPABASE_KEY = "sb_publishable_0QO5j2FI4wW76fR5dIkAOA_IpzSpONK";
+const SUPABASE_URL = "https://opnmdbnrbipwqqblbtfw.supabase.co";
+const SUPABASE_KEY = "sb_publishable_WcnFmSjd1d5MpcBSuU6OIg_6luqp1CZ";
 const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 let firstLoad=true, db=sb, downloads=true, myId=null, myName="", isAdmin=false, profiles=[];
 function saveFile(name, blob){ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }

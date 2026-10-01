@@ -1,7 +1,7 @@
 /* Carnet Sport Santé : service worker.
    - Les pages et bibliothèques sont mises en cache pour un démarrage rapide et hors ligne.
    - Les appels à la base Supabase ne sont jamais mis en cache (données toujours à jour, rien de sensible stocké). */
-const VERSION = "carnet-v7";
+const VERSION = "carnet-v8";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 const LIBS = [
   "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
