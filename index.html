@@ -155,6 +155,10 @@ table.dt th,table.dt td{padding:7px 8px;border-bottom:1px solid var(--line);text
 table.dt th:first-child,table.dt td:first-child{text-align:left;white-space:normal}
 table.dt th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
 table.dt .n{color:var(--muted);font-size:.72rem}
+.selbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--peach);border:1px solid #F2DA7A;border-radius:10px;padding:10px 12px;font-size:.88rem}
+.selbar .sp{flex:1}
+.pitem.sel{background:#FDECEC;outline:2px solid var(--danger);outline-offset:-2px}
+.pitem .ck{width:18px;height:18px;margin-right:8px;vertical-align:-3px;accent-color:var(--danger)}
 .pitem .by{font-size:.78rem;color:var(--orange)}
 @media (max-width:640px){.dgrid{grid-template-columns:1fr}}
 @media (max-width:560px){.body,.boxed{grid-template-columns:1fr}.prow{grid-template-columns:1fr}.evalbar .state{margin-left:0;width:100%}}
@@ -218,6 +222,18 @@ table.dt .n{color:var(--muted);font-size:.72rem}
     <div class="toolbar">
       <input id="search" type="search" placeholder="Rechercher un nom, un code, un téléphone…">
       <button class="btn" id="csv">Exporter la base (CSV)</button>
+      <button class="btn danger" id="sel-toggle" hidden>Supprimer des carnets…</button>
+    </div>
+    <div class="selbar" id="selbar" hidden>
+      <span id="sel-count">0 carnet sélectionné</span>
+      <button class="linkbtn" id="sel-all">Tout sélectionner</button>
+      <span class="sp"></span>
+      <button class="btn danger" id="sel-del" disabled>Supprimer la sélection</button>
+      <button class="btn" id="sel-cancel">Annuler</button>
+    </div>
+    <div class="confirm" id="sel-confirm" hidden>
+      <span id="sel-confirm-txt"></span>
+      <button class="btn danger" id="sel-yes">Oui, supprimer définitivement</button><button class="btn" id="sel-no">Non</button>
     </div>
     <span class="msg" id="list-msg" role="status"></span>
     <div class="plist" id="plist"><p class="empty">Aucun participant pour l'instant. Cliquez sur « Nouveau participant » pour ouvrir un premier carnet.</p></div>
@@ -264,9 +280,14 @@ table.dt .n{color:var(--muted);font-size:.72rem}
 
 <div class="footbar" id="footbar" hidden><div class="in">
   <button class="btn danger" id="del">Supprimer</button>
+  <button class="btn" id="clear-per" hidden>Effacer l'évaluation T0</button>
   <span class="sp"></span>
   <span class="msg" id="foot-msg"></span>
   <button class="btn accent" id="finish">Terminer et remettre le carnet</button>
+</div>
+<div class="in confirm" id="clr-confirm" hidden style="margin-top:8px">
+  <span id="clr-txt"></span>
+  <button class="btn danger" id="clr-yes">Oui, effacer</button><button class="btn" id="clr-no">Annuler</button>
 </div>
 <div class="in confirm" id="del-confirm" hidden style="margin-top:8px">
   <span>Supprimer définitivement ce participant et son carnet ?</span>
@@ -337,6 +358,7 @@ const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">"
 const dfr = v => { if(!v) return ""; const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v); return m?`${m[3]}/${m[2]}/${m[1]}`:v; };
 const num = v => { const x=parseFloat(String(v).replace(",",".")); return isFinite(x)?x:null; };
 function view(v){
+  if(v!=="list" && typeof selMode!=="undefined" && selMode) setSel(false);
   $("v-list").hidden = v!=="list"; $("v-dash").hidden = v!=="dash"; $("v-fiche").hidden = v!=="fiche"; $("v-result").hidden = v!=="result";
   $("footbar").hidden = v!=="fiche"; $("top-actions").hidden = v!=="list";
   const home = v==="list"||v==="dash";
@@ -396,6 +418,7 @@ function fillForm(){
   $("f-title").textContent = [cur.f.nom, cur.f.code].filter(Boolean).join(" · ") || "Nouveau participant";
 }
 function fillPeriod(){
+  if($("clear-per")){ $("clear-per").hidden=!isAdmin || !(cur&&cur._exists); $("clear-per").textContent=`Effacer l'évaluation ${PLABEL[period]}`; $("clr-confirm").hidden=true; }
   document.querySelectorAll("#seg button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.p===period));
   const pv = cur.p[period]||{};
   $("pdate").value = pv.date||"";
@@ -450,6 +473,7 @@ async function save(){
     if(error) throw error;
     if(!data || !data.length) throw {code:"denied"};
     if(data[0].f && data[0].f.code && data[0].f.code!==cur.f.code){ cur.f.code=data[0].f.code; $("f-code").value=cur.f.code; $("f-title").textContent=[cur.f.nom,cur.f.code].filter(Boolean).join(" · "); }
+    $("clear-per").hidden=!isAdmin;
     cur._exists = true; dirty=false; $("savestate").textContent="Enregistré ✓"+(cur.f.code?" · code "+cur.f.code:"");
     upsertLocal();
   }
@@ -690,10 +714,35 @@ function renderList(){
     const code=document.createElement("span"); code.className="code"; code.textContent=[x.f?.code,x.f?.contact,x.updatedAt?"modifié le "+new Date(x.updatedAt).toLocaleDateString("fr-FR"):""].filter(Boolean).join(" · ");
     const chips=document.createElement("span"); chips.className="chips";
     PERIODS.forEach(pp=>{ const c=document.createElement("span"); const has=hasP(x,pp); c.className="chip"+(has?" on":""); c.textContent=PLABEL[pp]; c.title=has?"Évaluation saisie":"Pas encore saisie"; chips.append(c); });
-    b.append(who,chips,code); b.onclick=()=>openFiche(x); el.append(b);
+    if(selMode){ const ck=document.createElement("input"); ck.type="checkbox"; ck.className="ck"; ck.tabIndex=-1; ck.checked=selected.has(x.id); who.prepend(ck); if(ck.checked) b.classList.add("sel"); }
+    b.append(who,chips,code); b.onclick=()=>{ if(selMode){ selected.has(x.id)?selected.delete(x.id):selected.add(x.id); updSel(); renderList(); } else openFiche(x); }; el.append(b);
   });
 }
 $("search").addEventListener("input",renderList);
+
+/* ---------- suppression en lot (administrateur) ---------- */
+let selMode=false; const selected=new Set();
+function updSel(){ const n=selected.size; $("sel-count").textContent = n+" carnet"+(n>1?"s":"")+" sélectionné"+(n>1?"s":""); $("sel-del").disabled=!n; $("sel-confirm").hidden=true; }
+function setSel(on){ selMode=on; selected.clear(); $("selbar").hidden=!on; $("sel-toggle").hidden=!isAdmin||on; $("new").disabled=on; updSel(); renderList(); }
+$("sel-toggle").onclick=()=>setSel(true);
+$("sel-cancel").onclick=()=>setSel(false);
+$("sel-all").onclick=()=>{ const q=$("search").value.trim().toLowerCase(); scoped().filter(x=>!q||[x.f?.nom,x.f?.code,x.f?.contact,x.f?.email,evalName(x.owner)].join(" ").toLowerCase().includes(q)).forEach(x=>selected.add(x.id)); updSel(); renderList(); };
+$("sel-del").onclick=()=>{ const n=selected.size; $("sel-confirm-txt").textContent=`Supprimer définitivement ${n} carnet${n>1?"s":""} ? Cette action est irréversible. Pensez à exporter la base (CSV) avant si besoin.`; $("sel-confirm").hidden=false; };
+$("sel-no").onclick=()=>{ $("sel-confirm").hidden=true; };
+$("sel-yes").onclick=async()=>{
+  const ids=[...selected]; const m=$("list-msg"); $("sel-yes").disabled=true; m.className="msg"; m.textContent="Suppression…";
+  const {data,error}=await db.from("participants").delete().in("id",ids).select("id");
+  $("sel-yes").disabled=false;
+  if(error){ m.className="msg err"; m.textContent="Suppression impossible : "+error.message; return; }
+  const done=new Set((data||[]).map(r=>r.id)); list=list.filter(x=>!done.has(x.id));
+  m.className="msg ok"; m.textContent=`${done.size} carnet${done.size>1?"s":""} supprimé${done.size>1?"s":""}.`+(done.size<ids.length?` ${ids.length-done.size} n'ont pas pu l'être.`:"");
+  setSel(false);
+};
+
+/* ---------- effacer une évaluation (administrateur) ---------- */
+$("clear-per").onclick=()=>{ $("clr-txt").textContent=`Effacer toutes les valeurs de l'évaluation ${PLABEL[period]} de ce carnet ? Les autres évaluations et le profil sont conservés.`; $("clr-confirm").hidden=false; };
+$("clr-no").onclick=()=>{ $("clr-confirm").hidden=true; };
+$("clr-yes").onclick=async()=>{ cur.p[period]={}; fillPeriod(); $("clr-confirm").hidden=true; dirty=true; await save(); $("foot-msg").className="msg ok"; $("foot-msg").textContent=`Évaluation ${PLABEL[period]} effacée.`; };
 $("csv").onclick=async()=>{
   const m=$("list-msg"); m.className="msg"; const L=scoped();
   if(!L.length){ m.textContent="Rien à exporter pour l'instant."; return; }
@@ -858,6 +907,7 @@ async function start(){
   if(!prof || !prof.actif){ ["v-list","v-dash","navrow","evalfilter-row","top-actions"].forEach(id=>$(id).hidden=true); $("v-pending").hidden=false; return; }
   $("v-pending").hidden=true;
   $("role").innerHTML = isAdmin?`<b>${esc(myName)}</b> · administrateur`:`<b>${esc(myName)}</b> · évaluateur · vous voyez les carnets de toute l'équipe`;
+  $("sel-toggle").hidden=!isAdmin;
   view("list"); await loadAll();
 }
 /* ---------- PWA : installation et mode hors ligne de l'interface ---------- */
