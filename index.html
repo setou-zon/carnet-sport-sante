@@ -11,23 +11,13 @@
 <style>
 /* Layout: the carnet's own system (navy + orange, condensed caps titles). One working column; list of participants, then the participant's carnet as collapsible pages with a sticky evaluation bar. */
 :root{
-  --bg:#F5F2EC; --surface:#FFFFFF; --fg:#1E2933; --muted:#66707A; --line:#DAD5CC;
+  --bg:#FFFFFF; --surface:#FFFFFF; --fg:#1E2933; --muted:#66707A; --line:#DDE3EA; --track:#EEF2F6; --field:#F7F9FB;
   --navy:#1B3350; --navy-fg:#FFFFFF; --orange:#D9692A; --rust:#B5521B;
   --box:#E3EAF2; --peach:#FBE3D3; --ok:#2E7D4F; --danger:#B3261E; --ink:#1F4FA0;
   --s1:#A9BCD3; --s2:#5B7DA6; --s3:#1B3350;
   --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#121821; --surface:#1A2230; --fg:#E4E9EF; --muted:#9AA6B2; --line:#2E3A4A;
-  --navy:#8FB3DE; --navy-fg:#0E1520; --orange:#F09257; --rust:#F0A06E;
-  --box:#1F2B3B; --peach:#3A2A20; --ok:#6CC891; --danger:#F08C84; --ink:#9CC0FF;
-  --s1:#3B5272; --s2:#6F92BE; --s3:#B9CFEA; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#121821; --surface:#1A2230; --fg:#E4E9EF; --muted:#9AA6B2; --line:#2E3A4A;
-  --navy:#8FB3DE; --navy-fg:#0E1520; --orange:#F09257; --rust:#F0A06E;
-  --box:#1F2B3B; --peach:#3A2A20; --ok:#6CC891; --danger:#F08C84; --ink:#9CC0FF;
-  --s1:#3B5272; --s2:#6F92BE; --s3:#B9CFEA; color-scheme:dark}
 *{box-sizing:border-box} [hidden]{display:none!important} html{color-scheme:light} body{margin:0}
 body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);padding:0 16px}
 .auth{max-width:420px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}
@@ -58,7 +48,7 @@ h2{font-size:1.35rem}
 /* list */
 .toolbar{display:flex;gap:8px;flex-wrap:wrap}
 .toolbar input{flex:1;min-width:0}
-input,select,textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%;min-width:0}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%;min-width:0}
 textarea{min-height:64px;resize:vertical}
 .plist{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .pitem{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
@@ -91,7 +81,7 @@ details.page[open] > summary{border-bottom:1px solid var(--line)}
 .fld > .l{font-size:.82rem;font-weight:500}
 .fld .h{font-size:.75rem;color:var(--muted)}
 .opts{display:flex;flex-wrap:wrap;gap:6px}
-.opts label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:.88rem;cursor:pointer;background:var(--bg)}
+.opts label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:.88rem;cursor:pointer;background:var(--field)}
 .opts input{width:auto;margin:0;accent-color:var(--navy)}
 .opts label:has(input:checked){border-color:var(--navy);background:var(--box)}
 .subh{grid-column:1/-1;font:700 .95rem var(--f-display);text-transform:uppercase;color:var(--rust);letter-spacing:.03em;margin-top:4px}
@@ -137,7 +127,7 @@ details.page[open] > summary{border-bottom:1px solid var(--line)}
 .panel .cap{font-size:.76rem;color:var(--muted);margin:0}
 .bars{display:flex;flex-direction:column;gap:8px}
 .bar{display:grid;grid-template-columns:minmax(6em,9.5em) 1fr 5.4em;gap:8px;align-items:center;font-size:.84rem}
-.bar .track{height:14px;background:var(--bg);border-radius:4px;overflow:hidden;display:flex;gap:2px}
+.bar .track{height:14px;background:var(--track);border-radius:4px;overflow:hidden;display:flex;gap:2px}
 .bar .fillb{height:100%;background:var(--navy);border-radius:0 4px 4px 0;min-width:2px}
 .bar .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--fg)}
 .bar .lab{min-width:0;overflow-wrap:anywhere}
@@ -268,63 +258,44 @@ const LOGO_SPT = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAU
 const $ = id => document.getElementById(id);
 const PERIODS = ["T0","M6","M12"], PLABEL = {T0:"T0",M6:"6 mois",M12:"12 mois"};
 const HABITS = [
- ["Bouger chaque jour","Au moins 30 min d'activité modérée, 5 jours par semaine. Marchez dès que possible."],
- ["S'asseoir moins","Levez-vous et bougez quelques minutes après une longue période assise."],
- ["Bien manger","3 repas réguliers, fruits et légumes à chaque repas ; moins de sucre, sel et friture."],
- ["Bien boire","Buvez de l'eau toute la journée, davantage par forte chaleur et à l'effort."],
- ["Bien dormir","7 à 9 h par nuit, à heures régulières. Évitez les écrans avant le coucher."],
- ["Gérer son stress","Respirez lentement, prenez du temps pour vous et parlez à un proche."],
- ["Tabac et alcool","Pas de tabac. Limitez l'alcool, ou mieux, n'en buvez pas."]];
+ "Bouger au moins 30 min par jour, 5 jours par semaine.",
+ "Se lever souvent et limiter le temps assis.",
+ "3 repas réguliers, des fruits et légumes, moins de sucre, sel et friture.",
+ "Boire de l'eau tout au long de la journée.",
+ "Dormir 7 à 9 h et prendre du temps pour gérer son stress.",
+ "Pas de tabac, limiter l'alcool."];
 const PROG = ["Activité physique de la vie quotidienne","AP en endurance","AP en renforcement musculaire","AP en assouplissement","Activité sportive"];
 
 /* ---------- schema (mirrors the carnet pages) ---------- */
 const SECTIONS = [
- {id:"profil",t:"Mon profil",n:2,f:[
-  {k:"code",l:"Code participant",req:1},{k:"nom",l:"Nom et prénom(s)",req:1},
-  {k:"sexe",l:"Sexe",ty:"radio",o:["H","F"]},{k:"age",l:"Âge (ans)",ty:"num"},
-  {k:"milieu",l:"Milieu",ty:"radio",o:["Urbain","Rural"]},{k:"profession",l:"Profession"},
-  {k:"contact",l:"Contact (téléphone)",ty:"tel",h:"Sert à l'envoi par WhatsApp"},{k:"email",l:"Email",ty:"email",h:"Facultatif"},
-  {k:"taille",l:"Taille (cm)",ty:"num",h:"Sert au calcul automatique de l'IMC"},
-  {k:"evalLe",l:"Évalué(e) le",ty:"date"},{k:"evalPar",l:"par"},
-  {box:"Ma santé",f:[{k:"antecedents",l:"Antécédents",ty:"area",full:1},{k:"traitements",l:"Traitements",ty:"area",full:1},
-   {k:"qaap",l:"Q-AAP",ty:"radio",o:["Apte","Avis médical requis"],full:1}]}]},
- {id:"medecin",t:"Avis du médecin",n:3,f:[
-  {k:"dr",l:"Dr"},{k:"consultLe",l:"Date de consultation",ty:"date"},
-  {box:"Contre-indication à l'activité physique",f:[{k:"ci",l:"",ty:"radio",o:["Aucune contre-indication","Contre-indication partielle","Totale temporaire"],full:1},
-   {k:"ciJusquau",l:"Totale temporaire, jusqu'au",ty:"date"}]},
-  {k:"limitations",l:"Limitations liées à l'état de santé",ty:"checks",o:["Cardio-respiratoire","Os / articulations","Métabolique (diabète…)","Équilibre / chutes","Tension artérielle","Autre"],full:1},
+ {id:"profil",t:"Profil & avis médical",n:2,f:[
+  {k:"code",l:"Code",req:1},{k:"nom",l:"Nom et prénom(s)",req:1},
+  {k:"age",l:"Âge (ans)",ty:"num"},{k:"sexe",l:"Sexe",ty:"radio",o:["H","F"]},
+  {k:"contact",l:"Contact (téléphone)",ty:"tel",h:"Sert à l'envoi par WhatsApp"},{k:"email",l:"Email",ty:"email",h:"Facultatif, non imprimé"},
+  {k:"taille",l:"Taille (cm)",ty:"num",h:"Non imprimée, sert au calcul de l'IMC"},
+  {k:"antecedents",l:"Antécédents / traitements",ty:"area",full:1},
+  {box:"Avis du médecin",f:[
+   {k:"dr",l:"Dr"},{k:"consultLe",l:"le",ty:"date"},
+   {k:"qaap",l:"Q-AAP",ty:"radio",o:["Apte","Avis requis"],full:1},
+   {k:"ci",l:"Contre-indication à l'activité physique",ty:"radio",o:["Aucune","Partielle","Totale temporaire"],full:1}]},
   {k:"aEviter",l:"À éviter",ty:"area",full:1},
-  {k:"intensiteMax",l:"Intensité max",ty:"radio",o:["Légère","Modérée","Élevée"]},{k:"fcMax",l:"FC max conseillée (bpm)",ty:"num"},
-  {k:"surveillance",l:"Surveillance"},{k:"medReeval",l:"Réévaluation le",ty:"date"}]},
- {id:"mesures",t:"Mes mesures santé",n:4,per:[
-  {t:"Paramètres cliniques",r:[["poids","Poids","kg"],["imc","IMC","kg/m²","auto"],["tourTaille","Tour de taille","cm"],["ta","Tension artérielle","mmHg","text"],["glycemie","Glycémie capillaire","g/L"],["fcRepos","FC de repos","bpm"],["spo2","Saturation O2","%"]]},
-  {t:"Composition corporelle",r:[["masseGrasse","Masse grasse","%"],["masseMusc","Masse musculaire","kg"],["graisseVisc","Graisse viscérale",""],["ageMeta","Âge métabolique","ans"]]}]},
- {id:"condition",t:"Ma condition physique",n:5,per:[
-  {t:"",r:[["endurance","Endurance","","test"],["forceHaut","Force du haut du corps","","test"],["forceBas","Force du bas du corps","","test"],["souplesse","Souplesse","","test"],["equilibre","Équilibre","","test"],["autreQ","Autre","","test"],["fcEffort","FC à l'effort","bpm"],["niveauCP","Niveau de condition physique","","sel:Faible|Moyen|Bon"]]}],
-  note:"Test au choix de l'évaluateur, adapté à l'âge, à la santé et aux capacités du participant. Noter l'unité (m, s, répét., cm)."},
- {id:"activite",t:"Activité & sédentarité",n:6,per:[
-  {t:"",r:[["minSem","Minutes actives","/ semaine"],["pas","Pas","/ jour"],["deplac","Déplacements actifs","min / jour"],["assis","Temps assis","h / jour"],["ecran","Temps d'écran","h / jour"],["pauses","Pauses actives","/ jour"],["niveauAct","Niveau d'activité","I / A","sel:I|A"],["sedent","Sédentarité","F / M / É","sel:F|M|É"]]}],
-  note:"I inactif (< 150 min/sem) · A actif (150 min/sem ou plus) · F faible · M modérée · É élevée. Déplacements actifs : marche, vélo."},
- {id:"facteurs",t:"Facteurs associés",n:7,per:[
-  {t:"Alimentation",r:[["repas","Repas","/ jour"],["fruits","Fruits/légumes","port./j"],["boissons","Boissons sucrées","/sem"],["eau","Eau","L / jour"]]},
-  {t:"Sommeil",r:[["sommeil","Durée","h / nuit"],["qualSommeil","Qualité","1–5"]]},
-  {t:"Stress",r:[["stress","Stress ressenti","0–10"],["gestStress","Gestion du stress","1–5"]]},
-  {t:"Consommations",r:[["tabac","Tabac","cig./jour"],["alcool","Alcool","verres/sem"]]}],
-  note:"1–5 : 1 très mauvais, 5 très bon · Stress de 0 à 10."},
- {id:"bilan",t:"Bilan & objectifs",n:8,f:[
-  {box:"Synthèse de l'évaluateur",f:[{k:"synCond",l:"Condition physique",full:1},{k:"synAct",l:"Activité / sédentarité",full:1},{k:"synAlim",l:"Alimentation",full:1},{k:"synSommeil",l:"Sommeil et stress",full:1},{k:"reco",l:"Recommandations",ty:"area",full:1},{k:"rdv",l:"Prochain RDV",ty:"date"}]},
+  {k:"medReeval",l:"Réévaluation le",ty:"date"}]},
+ {id:"resultats",t:"Mes résultats",n:3,per:[
+  {t:"Santé",r:[["poids","Poids","kg"],["imc","IMC","kg/m²","auto"],["tourTaille","Tour de taille","cm"],["ta","Tension artérielle","mmHg","text"]]},
+  {t:"Condition physique · test au choix",r:[["endurance","Endurance","","test"],["force","Force","","test"],["souplesse","Souplesse","","test"],["equilibre","Équilibre","","test"],["niveauCP","Niveau global","F / M / B","sel:F=F · faible|M=M · moyen|B=B · bon"]]}],
+  note:"F faible · M moyen · B bon. Test au choix de l'évaluateur : noter le test et l'unité (m, s, répét., cm)."},
+ {id:"habitudes",t:"Mes habitudes de vie",n:4,per:[
+  {t:"",r:[["minSem","Minutes actives","/ semaine"],["assis","Temps assis","h / jour"],["fruits","Fruits et légumes","portions / jour"],["sommeil","Sommeil","h / nuit"],["stress","Stress ressenti","0–10"],["tabacAlcool","Tabac / alcool","oui / non","sel:oui=oui|non=non"]]}],
+  note:"Objectif : au moins 150 minutes actives par semaine. Stress : 0 aucun, 10 maximal."},
+ {id:"bilan",t:"Bilan & orientation",n:5,f:[
+  {box:"Synthèse de l'évaluation",f:[{k:"pointsForts",l:"Points forts",full:1},{k:"aAmeliorer",l:"À améliorer",full:1},{k:"reco",l:"Recommandations",ty:"area",full:1}]},
   {sub:"Mes objectifs"},
-  {k:"obj1",l:"Objectif 1"},{k:"obj1d",l:"pour le",ty:"date"},{k:"obj2",l:"Objectif 2"},{k:"obj2d",l:"pour le",ty:"date"},{k:"obj3",l:"Objectif 3"},{k:"obj3d",l:"pour le",ty:"date"}]},
- {id:"habitudes",t:"Mes bonnes habitudes",n:9,f:[{k:"habitudes",l:"Engagements cochés par le participant",ty:"checks",o:HABITS.map(h=>h[0]),full:1}]},
- {id:"apa",t:"Professionnel APA",n:10,f:[
-  {k:"apaNom",l:"Nom",full:1},{k:"apaFonction",l:"Fonction"},{k:"apaStructure",l:"Structure"},
+  {k:"obj1",l:"Objectif 1"},{k:"obj1d",l:"pour le",ty:"date"},{k:"obj2",l:"Objectif 2"},{k:"obj2d",l:"pour le",ty:"date"},{k:"obj3",l:"Objectif 3"},{k:"obj3d",l:"pour le",ty:"date"},
+  {sub:"Professionnel APA"},
   {k:"apaNiveau",l:"Niveau",ty:"radio",o:["Débutant","Intermédiaire","Confirmé"],full:1},
-  {k:"apaEnc",l:"Encadrement",ty:"radio",o:["Encadré","Autonome","Mixte"],full:1},
-  {k:"apaSeances",l:"Séances encadrées / semaine",ty:"num"},{k:"apaDuree",l:"de (min)",ty:"num"},
-  {box:"Adaptations au programme",f:[{k:"apaAdapt",l:"Selon l'avis médical",ty:"area",full:1},{k:"apaBorg",l:"Intensité cible : Borg (/10)",ty:"num"},{k:"apaFc",l:"FC cible"},{k:"apaProg",l:"Progression prévue",full:1}]},
-  {warn:"Arrêtez l'effort en cas de douleur dans la poitrine, malaise, vertige ou essoufflement anormal, et prévenez votre encadrant."},
-  {k:"apaReeval",l:"Réévaluation le",ty:"date"}]},
- {id:"programme",t:"Mon programme d'APA",n:11,f:[
+  {k:"apaBorg",l:"Intensité cible : Borg (/10)",ty:"num"},{k:"apaFc",l:"FC cible"},
+  {k:"rdv",l:"Prochain RDV",ty:"date"},{k:"visa",l:"Visa"}]},
+ {id:"programme",t:"Mon programme d'APA",n:6,f:[
   {k:"progLe",l:"Établi le",ty:"date"},{k:"progRevoir",l:"À revoir le",ty:"date"},
   ...PROG.flatMap((c,i)=>[{sub:c},{k:`pg${i}ex`,l:"Exemple",full:1},{k:`pg${i}int`,l:"Intensité"},{k:`pg${i}dur`,l:"Durée"},{k:`pg${i}freq`,l:"Fréquence"}])]}
 ];
@@ -337,7 +308,7 @@ let firstLoad=true, db=sb, downloads=true, myId=null, myName="", isAdmin=false, 
 function saveFile(name, blob){ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }
 let list=[], cur=null, period="T0", dirty=false, saving=false, again=false, saveTimer=null, indexed=false, tab="list";
 const byEval={}, subs={}, names={};
-const blank = () => ({_exists:false, id:"p-"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), owner:myId, createdAt:Date.now(), f:{evalPar:myName||""}, p:{T0:{},M6:{},M12:{}}});
+const blank = () => ({_exists:false, id:"p-"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), owner:myId, createdAt:Date.now(), f:{}, p:{T0:{},M6:{},M12:{}}});
 const evalName = uid => uid===myId ? (myName||"Vous") : (names[uid]||"Évaluateur");
 
 /* ---------- helpers ---------- */
@@ -377,10 +348,10 @@ function fieldHTML(d){
 function perHTML(sec){
   return sec.per.map(g=>`${g.t?`<div class="subh">${esc(g.t)}</div>`:""}<div class="ptable">${g.r.map(([k,l,u,kind])=>{
     let input;
-    if(kind&&kind.startsWith("sel:")) input=`<select id="p-${k}" data-pk="${k}"><option value=""></option>${kind.slice(4).split("|").map(o=>`<option>${esc(o)}</option>`).join("")}</select>`;
+    if(kind&&kind.startsWith("sel:")) input=`<select id="p-${k}" data-pk="${k}"><option value=""></option>${kind.slice(4).split("|").map(o=>{const [v,lab]=o.includes("=")?o.split("="):[o,o]; return `<option value="${esc(v)}">${esc(lab)}</option>`;}).join("")}</select>`;
     else input=`<input id="p-${k}" data-pk="${k}" ${kind==="text"||kind==="test"?"":'inputmode="decimal"'} autocomplete="off" placeholder="${kind==="test"?"Résultat":""}">`;
     const test = kind==="test"?`<input class="test" id="t-${k}" data-tk="${k}" placeholder="Test utilisé (ex. 6 min marche, m)" autocomplete="off">`:"";
-    const auto = kind==="auto"||k==="niveauAct"?`<span class="auto">calcul auto</span>`:"";
+    const auto = kind==="auto"?`<span class="auto">calcul auto</span>`:"";
     return `<div class="prow"><div class="l">${esc(l)} <span class="u">${esc(u)}</span>${auto}${test}</div><div>${input}</div><div class="hist" id="h-${k}"></div></div>`;
   }).join("")}</div>`).join("") + (sec.note?`<p class="note">${esc(sec.note)}</p>`:"");
 }
@@ -438,8 +409,6 @@ function autoCalc(){
   const pv = cur.p[period] ||= {};
   const w=num(pv.poids), h=num(cur.f.taille);
   if(w && h){ pv.imc=(w/((h/100)**2)).toFixed(1); $("p-imc").value=pv.imc; }
-  const m=num(pv.minSem);
-  if(m!==null){ pv.niveauAct = m>=150?"A":"I"; $("p-niveauAct").value=pv.niveauAct; }
 }
 document.querySelectorAll("#seg button").forEach(b=>b.onclick=()=>{ period=b.dataset.p; fillPeriod(); });
 
@@ -510,7 +479,7 @@ function message(){
    f.rdv?`Votre prochain rendez-vous : le ${dfr(f.rdv)}.`:"",
    f.obj1?`Votre premier objectif : ${f.obj1}${f.obj1d?" (pour le "+dfr(f.obj1d)+")":""}.`:"","",
    "Apportez ce carnet à chaque séance et à chaque évaluation.","Bouger plus, s'asseoir moins !","",
-   f.evalPar||f.apaNom||""].filter((l,i,a)=>!(l===""&&a[i-1]==="")).join("\n").trim();
+   myName||""].filter((l,i,a)=>!(l===""&&a[i-1]==="")).join("\n").trim();
 }
 function openResult(){
   const f=cur.f;
@@ -582,7 +551,7 @@ function buildCarnet(P){
     row("Date","",PERIODS.map(x=>dfr(p[x]?.date)),true);
     groups.forEach(g=>{
       if(g.t){ y+=1; font(7,"bold",RUST); doc.text(T(g.t.toUpperCase()),M,y+4); y+=5.2; doc.setDrawColor(...LN); doc.line(M,y,W-M,y); }
-      g.r.forEach(([k,l,u,kind])=>row(l,u,PERIODS.map(x=>p[x]?.[k]),false,kind==="test"?(f["test_"+k]||""):undefined));
+      g.r.forEach(([k,l,u,kind])=>row(l,u,PERIODS.map(x=>kind==="poidsimc"?[p[x]?.poids,p[x]?.imc?String(p[x].imc).replace(".",","):""].filter(Boolean).join(" / "):p[x]?.[k]),false,kind==="test"?(f["test_"+k]||""):undefined));
     });
     return y; };
 
@@ -604,122 +573,75 @@ function buildCarnet(P){
   try{ doc.addImage(LOGO_SPT,"JPEG",10,118.5,43,20); }catch{}
   font(6.8,"normal",[225,232,240]); doc.text("Bouger plus",W-8,128,{align:"right"}); doc.text("S'asseoir moins",W-8,132,{align:"right"});
 
-  /* 2 profil */
-  page("Mon profil",2); let y=26, x, yy; const w=W-2*M;
-  lineF("Code participant",f.code,M,y,w); y+=6.5; lineF("Nom et prénom(s)",f.nom,M,y,w); y+=6.5;
-  font(6.8); doc.text("Sexe",M,y); x=opt("H",f.sexe==="H",M+10,y); x=opt("F",f.sexe==="F",x,y); lineF("Âge",f.age?f.age+" ans":"",x+2,y,W-M-x-2); y+=6.5;
-  font(6.8); doc.text("Milieu",M,y); x=opt("Urbain",f.milieu==="Urbain",M+12,y); opt("Rural",f.milieu==="Rural",x,y); y+=6.5;
-  lineF("Profession",f.profession,M,y,w); y+=6.5; lineF("Contact",[f.contact,f.email].filter(Boolean).join(" · "),M,y,w); y+=6.5;
-  lineF("Évalué(e) le",dfr(f.evalLe),M,y,48); lineF("par",f.evalPar,M+50,y,w-50); y+=6;
-  doc.setFillColor(...BOX); doc.roundedRect(M,y,w,46,2,2,"F");
-  font(9.5,"bold",NAVY); doc.text("MA SANTÉ",M+3,y+7);
-  yy=areaF("Antécédents",f.antecedents,M+3,y+14,w-6,2); yy=areaF("Traitements",f.traitements,M+3,yy+1,w-6,1);
-  font(6.8,"bold",TXT); doc.text("Q-AAP",M+3,yy+3); x=opt("Apte",f.qaap==="Apte",M+15,yy+3); opt("Avis médical requis",f.qaap==="Avis médical requis",x,yy+3);
-  font(6.3,"normal",GR); doc.text("Voir l'avis du médecin, page 3.",M+3,yy+9);
-  if(f.taille){ font(6.3,"normal",GR); doc.text(`Taille : ${f.taille} cm`,M,y+53); }
 
-  /* 3 médecin */
-  page("Avis du médecin",3); y=26;
-  lineF("Dr",f.dr,M,y,w); y+=6.5; lineF("Date de consultation",dfr(f.consultLe),M,y,w); y+=4;
-  doc.setFillColor(...NAVY); doc.roundedRect(M,y,w,25,2,2,"F");
-  font(8,"bold",[255,255,255]); doc.text("CONTRE-INDICATION À L'ACTIVITÉ PHYSIQUE",M+3,y+6);
-  const W1=[255,255,255]; doc.setDrawColor(255,255,255);
-  const optW=(l,on,xx,yy)=>{ doc.setDrawColor(255,255,255); doc.setLineWidth(.25); doc.rect(xx,yy-2.4,2.6,2.6); if(on){doc.setFillColor(...OR); doc.rect(xx+.5,yy-1.9,1.6,1.6,"F");} font(6.8,"normal",W1); doc.text(T(l),xx+3.6,yy); };
-  optW("Aucune contre-indication",f.ci==="Aucune contre-indication",M+3,y+11.5);
-  optW("Contre-indication partielle (voir ci-dessous)",f.ci==="Contre-indication partielle",M+3,y+16.5);
-  optW("Totale temporaire, jusqu'au",f.ci==="Totale temporaire",M+3,y+21.5); font(7,"bold",[255,255,255]); doc.text(dfr(f.ciJusquau),M+45,y+21.5);
-  y+=31; font(6.8,"bold",TXT); doc.text("Limitations liées à l'état de santé",M,y); y+=5;
-  const lim=f.limitations||[], L=["Cardio-respiratoire","Os / articulations","Métabolique (diabète…)","Équilibre / chutes","Tension artérielle","Autre"];
-  L.forEach((l,i)=>opt(l,lim.includes(l),M+(i%2)*44,y+Math.floor(i/2)*5)); y+=16;
-  y=areaF("À éviter",f.aEviter,M,y,w,2)+1;
-  font(6.8,"bold",TXT); doc.text("Intensité max",M,y); x=M+19; ["Légère","Modérée","Élevée"].forEach(o=>x=opt(o,f.intensiteMax===o,x,y)); y+=6.5;
-  lineF("FC max conseillée",f.fcMax?f.fcMax+" bpm":"",M,y,w); y+=6.5; lineF("Surveillance",f.surveillance,M,y,w); y+=9;
-  font(6.8); doc.text("Réévaluation le",M,y); doc.setDrawColor(...LN); doc.line(M,y+6.6,M+38,y+6.6); val(dfr(f.medReeval),M+1,y+5.6);
-  doc.setLineDashPattern([1,1],0); doc.setDrawColor(...GR); doc.roundedRect(M+44,y-5,w-44,16,2,2); doc.setLineDashPattern([],0);
-  font(6.3,"normal",GR); doc.text("Signature et cachet",M+47,y-.8);
+  const S=id=>SECTIONS.find(s=>s.id===id); const w=W-2*M; let y, x, yy;
 
-  /* 4-7 periodic */
-  const S=id=>SECTIONS.find(s=>s.id===id);
-  page("Mes mesures santé",4); ptable(23,"Mesure",S("mesures").per);
-  page("Ma condition physique",5); y=ptable(23,"Qualité évaluée",[{t:"",r:S("condition").per[0].r.filter(r=>r[0]!=="niveauCP")}]);
-  y+=3; doc.setFillColor(...NAVY); doc.roundedRect(M,y,w,17,2,2,"F"); font(7,"bold",[255,255,255]); doc.text("Niveau de condition physique",M+3,y+5);
-  const reev = p.M12?.niveauCP ? p.M12.niveauCP : p.M6?.niveauCP;
-  [["T0",p.T0?.niveauCP],["Réév.",reev]].forEach(([lab,v],i)=>{ const yy=y+10+i*5; font(6.6,"normal",[255,255,255]); doc.text(lab,M+3,yy); ["Faible","Moyen","Bon"].forEach((o,j)=>optW(o,v===o,M+20+j*18,yy)); });
-  font(6,"normal",GR); doc.text(doc.splitTextToSize(S("condition").note,w),M,y+22);
-  page("Activité & sédentarité",6); y=ptable(23,"Indicateur",S("activite").per,6.6); font(6,"normal",GR); doc.text(doc.splitTextToSize(S("activite").note,w),M,y+5);
-  page("Facteurs associés",7); y=ptable(23,"Facteur",S("facteurs").per,5.2); font(6,"normal",GR); doc.text(doc.splitTextToSize(S("facteurs").note,w),M,y+5);
+  /* 2 profil & avis médical */
+  page("Profil & avis médical",2); y=26;
+  lineF("Code",f.code,M,y,36); lineF("Âge",f.age?f.age+" ans":"",M+38,y,22);
+  font(6.8); doc.text("Sexe",M+64,y); x=opt("H",f.sexe==="H",M+71,y); opt("F",f.sexe==="F",x,y); y+=6.5;
+  lineF("Nom et prénom(s)",f.nom,M,y,w); y+=6.5;
+  lineF("Contact",f.contact,M,y,w); y+=6.5;
+  y=areaF("Antécédents / traitements",f.antecedents,M,y,w,2)+1.5;
+  doc.setFillColor(...NAVY); doc.roundedRect(M,y,w,32,2,2,"F");
+  const Wt=[255,255,255];
+  const optW=(l,on,xx,yy2)=>{ doc.setDrawColor(255,255,255); doc.setLineWidth(.25); doc.rect(xx,yy2-2.4,2.6,2.6); if(on){doc.setFillColor(...OR); doc.rect(xx+.5,yy2-1.9,1.6,1.6,"F");} font(6.6,"normal",Wt); doc.text(T(l),xx+3.6,yy2); return xx+3.6+doc.getTextWidth(T(l))+3; };
+  const lineW=(label,v,xx,yy2,ww)=>{ font(6.6,"normal",Wt); doc.text(label,xx,yy2); const lw=doc.getTextWidth(label)+1.5; doc.setDrawColor(200,210,222); doc.setLineWidth(.2); doc.line(xx+lw,yy2+.6,xx+ww,yy2+.6); if(v){ font(7.2,"bold",Wt); doc.text(doc.splitTextToSize(T(v),ww-lw-1)[0],xx+lw+.5,yy2-.4);} };
+  font(8,"bold",Wt); doc.text("AVIS DU MÉDECIN",M+3,y+6);
+  lineW("Dr",f.dr,M+3,y+12,58); lineW("le",dfr(f.consultLe),M+64,y+12,w-67);
+  font(6.6,"bold",Wt); doc.text("Q-AAP",M+3,y+18); x=optW("Apte",f.qaap==="Apte",M+14,y+18); optW("Avis requis",f.qaap==="Avis requis",x,y+18);
+  font(6.6,"bold",Wt); doc.text("Contre-indication à l'activité physique",M+3,y+23.5);
+  x=optW("Aucune",f.ci==="Aucune",M+3,y+29); x=optW("Partielle",f.ci==="Partielle",x,y+29); optW("Totale temporaire",f.ci==="Totale temporaire",x,y+29);
+  y+=39; font(6.8,"bold",TXT); y=areaF("À éviter",f.aEviter,M,y,w,2)+5;
+  font(6.8); doc.text("Réévaluation le",M,y+3); doc.setDrawColor(...LN); doc.line(M,y+9.6,M+38,y+9.6); val(dfr(f.medReeval),M+1,y+8.6);
+  doc.setLineDashPattern([1,1],0); doc.setDrawColor(...GR); doc.roundedRect(M+44,y-3,w-44,16,2,2); doc.setLineDashPattern([],0);
+  font(6.2,"normal",GR); doc.text("Signature et cachet du médecin",M+47,y+1);
 
-  /* 8 bilan */
-  page("Bilan & objectifs",8); y=23; doc.setFillColor(...BOX); doc.roundedRect(M,y,w,58,2,2,"F");
-  font(9,"bold",NAVY); doc.text("SYNTHÈSE DE L'ÉVALUATEUR",M+3,y+7); yy=y+14;
-  [["Condition physique",f.synCond],["Activité / sédentarité",f.synAct],["Alimentation",f.synAlim],["Sommeil et stress",f.synSommeil]].forEach(([l,v])=>{ lineF(l,v,M+3,yy,w-6); yy+=6; });
-  yy=areaF("Recommandations",f.reco,M+3,yy,w-6,2); font(6.8,"bold",TXT); lineF("Prochain RDV",dfr(f.rdv),M+3,yy+1.5,w-6);
-  y+=66; font(8,"bold",RUST); doc.text("MES OBJECTIFS",M,y); y+=8;
+  /* 3 résultats */
+  page("Mes résultats",3);
+  const res=S("resultats").per;
+  y=ptable(23,"Mesure",[{t:"Santé",r:[["pi","Poids (kg) / IMC","","poidsimc"],["tourTaille","Tour de taille","(cm)"],["ta","Tension artérielle","(mmHg)"]]},
+     {t:"Condition physique · test au choix",r:res[1].r.map(r=>r[0]==="niveauCP"?["niveauCP","Niveau global","(F / M / B)"]:r)}],5.6);
+  font(6,"normal",GR); doc.text("F faible · M moyen · B bon",M,y+5);
+
+  /* 4 habitudes de vie */
+  page("Mes habitudes de vie",4); y=ptable(23,"Indicateur",[{t:"",r:[["minSem","Minutes actives","/ semaine"],["assis","Temps assis","(h / jour)"],["fruits","Fruits et légumes","(port. / jour)"],["sommeil","Sommeil","(h / nuit)"],["stress","Stress ressenti","(0–10)"],["tabacAlcool","Tabac / alcool","(oui / non)"]]}],8);
+  font(6,"normal",GR); doc.text(["Objectif : au moins 150 minutes actives par semaine.","Stress : 0 aucun, 10 maximal."],M,y+5);
+
+  /* 5 bilan & orientation */
+  page("Bilan & orientation",5); y=23; doc.setFillColor(...BOX); doc.roundedRect(M,y,w,40,2,2,"F");
+  font(8.5,"bold",NAVY); doc.text("SYNTHÈSE DE L'ÉVALUATION",M+3,y+7);
+  lineF("Points forts",f.pointsForts,M+3,y+14,w-6); lineF("À améliorer",f.aAmeliorer,M+3,y+20.5,w-6);
+  areaF("Recommandations",f.reco,M+3,y+27,w-6,2);
+  y+=48; font(7.5,"bold",RUST); doc.text("MES OBJECTIFS",M,y); y+=7;
   [[f.obj1,f.obj1d],[f.obj2,f.obj2d],[f.obj3,f.obj3d]].forEach(([o,d],i)=>{
     doc.setFillColor(...RUST); doc.circle(M+2.3,y-1,2.3,"F"); font(7,"bold",[255,255,255]); doc.text(String(i+1),M+2.3,y+.2,{align:"center"});
-    doc.setDrawColor(...LN); doc.line(M+7,y+.6,M+57,y+.6); val(o,M+7.5,y-.4,49); font(6.5,"normal",GR); doc.text("pour le",M+60,y);
-    doc.line(M+70,y+.6,W-M,y+.6); val(dfr(d),M+70.5,y-.4); y+=8; });
+    doc.setDrawColor(...LN); doc.setLineWidth(.2); doc.line(M+7,y+.6,M+57,y+.6); val(o,M+7.5,y-.4,49); font(6.5,"normal",GR); doc.text("pour le",M+60,y);
+    doc.line(M+70,y+.6,W-M,y+.6); val(dfr(d),M+70.5,y-.4); y+=7.5; });
+  y+=3; font(7.5,"bold",RUST); doc.text("PROFESSIONNEL APA",M,y); y+=7;
+  font(6.8,"bold",TXT); doc.text("Niveau",M,y); x=M+12; ["Débutant","Intermédiaire","Confirmé"].forEach(o=>x=opt(o,f.apaNiveau===o,x,y)); y+=7;
+  lineF("Intensité cible : Borg",f.apaBorg?f.apaBorg+" /10":"",M,y,46); lineF("FC",f.apaFc,M+48,y,w-48); y+=7;
+  font(6.8,"bold",TXT); lineF("Prochain RDV",dfr(f.rdv),M,y,50); lineF("Visa",f.visa,M+53,y,w-53);
 
-  /* 9 habitudes */
-  page("Mes bonnes habitudes",9); font(7.3,"bold",RUST); doc.text(doc.splitTextToSize("Pour atteindre votre objectif, suivez ces habitudes de vie. Cochez vos engagements.",w),M,24); y=35;
-  const hab=f.habitudes||[];
-  HABITS.forEach(([t,d],i)=>{ doc.setFillColor(...(i%2?RUST:NAVY)); doc.circle(M+2.5,y,2.5,"F"); font(7,"bold",[255,255,255]); doc.text(String(i+1),M+2.5,y+1.1,{align:"center"});
-    font(8,"bold",NAVY); doc.text(t.toUpperCase(),M+7,y+1); box(W-M-3,y+1.3,hab.includes(t)); font(6.4,"normal",TXT); doc.text(doc.splitTextToSize(d,w-12),M+7,y+4.8); y+=15; });
-
-  /* 10 APA */
-  page("Professionnel APA",10); y=25; lineF("Nom",f.apaNom,M,y,w); y+=6.5; lineF("Fonction",f.apaFonction,M,y,44); lineF("Structure",f.apaStructure,M+46,y,w-46); y+=6.5;
-  font(6.8,"bold",TXT); doc.text("Niveau",M,y); x=M+12; ["Débutant","Intermédiaire","Confirmé"].forEach(o=>x=opt(o,f.apaNiveau===o,x,y)); y+=6;
-  font(6.8,"bold",TXT); doc.text("Encadrement",M,y); x=M+19; ["Encadré","Autonome","Mixte"].forEach(o=>x=opt(o,f.apaEnc===o,x,y)); y+=6.5;
-  lineF("Séances encadrées",f.apaSeances,M,y,38); font(6.8); doc.text("/ semaine de",M+40,y); doc.setDrawColor(...LN); doc.line(M+57,y+.6,M+72,y+.6); val(f.apaDuree,M+58,y-.4); font(6.8); doc.text("min",M+74,y); y+=5;
-  doc.setFillColor(...BOX); doc.roundedRect(M,y,w,36,2,2,"F"); font(8.5,"bold",NAVY); doc.text("ADAPTATIONS AU PROGRAMME",M+3,y+6.5);
-  yy=areaF("Selon l'avis médical",f.apaAdapt,M+3,y+13,w-6,2);
-  lineF("Intensité cible : Borg",f.apaBorg?f.apaBorg+" /10":"",M+3,yy,46); lineF("FC",f.apaFc,M+51,yy,w-54); lineF("Progression prévue",f.apaProg,M+3,yy+6,w-6);
-  y+=40; doc.setFillColor(...PEACH); doc.roundedRect(M,y,w,15,2,2,"F"); font(6.6,"normal",TXT);
-  doc.text(doc.splitTextToSize("Arrêtez l'effort en cas de douleur dans la poitrine, malaise, vertige ou essoufflement anormal, et prévenez votre encadrant.",w-6),M+3,y+5);
-  y+=23; font(6.8); doc.text("Réévaluation le",M,y); doc.setDrawColor(...LN); doc.line(M,y+6.6,M+38,y+6.6); val(dfr(f.apaReeval),M+1,y+5.6);
-  doc.setLineDashPattern([1,1],0); doc.setDrawColor(...GR); doc.roundedRect(M+44,y-5,w-44,16,2,2); doc.setLineDashPattern([],0); font(6.3,"normal",GR); doc.text("Signature",M+47,y-.8);
-
-  /* 11 programme */
-  page("Mon programme d'APA",11); y=24; lineF("Établi le",dfr(f.progLe),M,y,44); lineF("À revoir le",dfr(f.progRevoir),M+46,y,w-46); y+=7;
+  /* 6 programme */
+  page("Mon programme d'APA",6); y=24; lineF("Établi le",dfr(f.progLe),M,y,44); lineF("À revoir le",dfr(f.progRevoir),M+46,y,w-46); y+=7;
   PROG.forEach((c,i)=>{ font(7,"bold",RUST); doc.text(T(c.toUpperCase()),M,y); y+=5; lineF("Exemple",f[`pg${i}ex`],M,y,w); y+=5.5;
     lineF("Intensité",f[`pg${i}int`],M,y,28); lineF("Durée",f[`pg${i}dur`],M+30,y,28); lineF("Fréq.",f[`pg${i}freq`],M+60,y,w-60); y+=2.5;
     doc.setDrawColor(...LN); doc.line(M,y,W-M,y); y+=5; });
 
-  /* 12 séances (blank, filled by the participant) */
-  page("Suivi des séances",12); y=22; const cols=[["Date",12],["Contenu de la séance",43],["Durée min",10],["Borg",9],["Ress.",8],["Visa",7]];
-  doc.setFillColor(...NAVY); doc.roundedRect(M,y,w,7,1,1,"F"); x=M; font(6,"bold",[255,255,255]);
-  cols.forEach(([l,cw])=>{ doc.text(doc.splitTextToSize(l,cw-1),x+cw/2,y+3,{align:"center"}); x+=cw; }); y+=7;
-  doc.setDrawColor(...LN); doc.setLineWidth(.15);
-  for(let r=0;r<12;r++){ doc.line(M,y+(r+1)*7.6,W-M,y+(r+1)*7.6); } x=M; cols.slice(0,-1).forEach(([,cw])=>{ x+=cw; doc.line(x,y,x,y+12*7.6); });
-  font(6,"normal",GR); doc.text(doc.splitTextToSize("Borg : effort ressenti 0–10 · Ress. : ressenti 1 (mauvais) à 5 (très bien) · Visa de l'encadrant.",w),M,y+12*7.6+5);
-
-  /* 13-14 ma semaine (blank) */
-  for(const n of [13,14]){
-    page("Ma semaine",n); lineF("Semaine du","",M,25,46); lineF("au","",M+50,25,w-50); y=30;
-    const sc=[["J",8],["Activité(s)",33],["Min",9],["Int.",9],["Assis",9],["Som.",9],["Str.",12]];
-    doc.setFillColor(...NAVY); doc.roundedRect(M,y,w,6,1,1,"F"); x=M; font(6,"bold",[255,255,255]); sc.forEach(([l,cw])=>{ doc.text(l,x+cw/2,y+4,{align:"center"}); x+=cw; }); y+=6;
-    ["L","M","M","J","V","S","D"].forEach((d,i)=>{ font(6.6,"bold",TXT); doc.text(d,M+4,y+i*7+4.5,{align:"center"}); doc.setDrawColor(...LN); doc.line(M,y+(i+1)*7,W-M,y+(i+1)*7); });
-    doc.setFillColor(...PEACH); doc.rect(M,y+49,w,7,"F"); font(6.3,"bold",TXT); doc.text("Total de la semaine",M+9,y+53.5);
-    x=M; sc.slice(0,-1).forEach(([,cw])=>{ x+=cw; doc.line(x,y,x,y+56); });
-    font(6,"normal",GR); doc.text(doc.splitTextToSize("Int. F/M/É · Assis et Som. (sommeil) en h · Str. stress 0–10",w),M,y+61);
-    font(6.8,"bold",TXT); doc.text("Forme ressentie",M,y+70); for(let k=1;k<=5;k++){ doc.setDrawColor(...TXT); doc.circle(M+50+k*7,y+69,2.6); font(6.5,"normal",TXT); doc.text(String(k),M+50+k*7,y+70.2,{align:"center"}); }
-    font(6.8,"bold",TXT); doc.text("Objectif 150 min atteint ?",M,y+78); x=opt("oui",false,M+38,y+78); opt("non",false,x,y+78);
-  }
-
-  /* 15 suivi mensuel (blank) */
-  page("Mon suivi mensuel",15); font(6.8,"normal",GR); doc.text("Une ligne par mois, en moyenne sur le mois.",M,24); y=28;
-  const mc=[["Mois",9],["Activité min/sem",18],["Sommeil h/nuit",18],["Stress 0–10",17],["Alim. 1–5",16],["Poids kg",11]];
+  /* 7 suivi mensuel (vierge) */
+  page("Mon suivi mensuel",7); font(6.6,"normal",GR); doc.text("Une ligne par mois (moyennes). AP = activité physique.",M,24); y=28;
+  const mc=[["Mois",9],["AP min/sem",17],["Séances nb",17],["Sommeil h",17],["Stress 0–10",15],["Poids kg",14]];
   doc.setFillColor(...NAVY); doc.roundedRect(M,y,w,8,1,1,"F"); x=M; font(5.8,"bold",[255,255,255]);
   mc.forEach(([l,cw])=>{ doc.text(doc.splitTextToSize(l,cw-1),x+cw/2,y+3.3,{align:"center"}); x+=cw; }); y+=8;
-  for(let r=0;r<12;r++){ font(6.6,"bold",TXT); doc.text(String(r+1),M+4.5,y+r*8.3+5.3,{align:"center"}); doc.setDrawColor(...LN); doc.line(M,y+(r+1)*8.3,W-M,y+(r+1)*8.3); }
-  x=M; mc.slice(0,-1).forEach(([,cw])=>{ x+=cw; doc.line(x,y,x,y+12*8.3); });
+  for(let r=0;r<12;r++){ font(6.6,"bold",TXT); doc.text(String(r+1),M+4.5,y+r*8.6+5.5,{align:"center"}); doc.setDrawColor(...LN); doc.setLineWidth(.15); doc.line(M,y+(r+1)*8.6,W-M,y+(r+1)*8.6); }
+  x=M; mc.slice(0,-1).forEach(([,cw])=>{ x+=cw; doc.line(x,y,x,y+12*8.6); });
 
-  /* 16 back cover */
+  /* 8 mes bonnes habitudes (dos) */
   page(); doc.setFillColor(...NAVY); doc.rect(0,0,W,H,"F");
-  font(17,"bold",[255,255,255]); doc.text("BOUGER PLUS,",M,18); doc.text("S'ASSEOIR MOINS",M,25.5);
-  const tips=["150 à 300 min par semaine d'activité modérée, ou 75 à 150 min d'activité intense (OMS).","Renforcement musculaire au moins 2 jours par semaine ; dès 65 ans, équilibre au moins 3 jours.","Levez-vous et bougez après une longue période assise.","Apportez ce carnet à chaque séance et à chaque évaluation."];
-  y=34; tips.forEach((t,i)=>{ font(10,"bold",OR); doc.text("0"+(i+1),M,y+1); font(6.8,"normal",[230,236,242]); const ls=doc.splitTextToSize(t,78); doc.text(ls,M+11,y); y+=ls.length*3.4+4; });
-  doc.setDrawColor(90,110,135); doc.setLineWidth(.2); doc.line(M,y,W-M,y); y+=6;
+  font(15,"bold",[255,255,255]); doc.text("MES BONNES HABITUDES",M,17);
+  y=27; HABITS.forEach((t,i)=>{ font(9,"bold",OR); doc.text("0"+(i+1),M,y+.8); font(6.6,"normal",[230,236,242]); const ls=doc.splitTextToSize(t,76); doc.text(ls,M+11,y); y+=ls.length*3.3+3.6; });
+  y+=1; doc.setDrawColor(90,110,135); doc.setLineWidth(.2); doc.line(M,y,W-M,y); y+=6;
   doc.setFillColor(255,255,255); doc.roundedRect(M,y,17,16,2,2,"F"); try{ doc.addImage(LOGO_MSJE,"JPEG",M+1.5,y+1,14,14); }catch{}
   font(6.6,"bold",[255,255,255]); doc.text(doc.splitTextToSize("Ministère des Sports, de la Jeunesse et de l'Emploi",66),M+21,y+3); font(6.3,"bold",OR); doc.text("MSJE / DGSL / DST",M+21,y+10.5);
   y+=21; doc.setFillColor(255,255,255); doc.roundedRect(M,y,w,18,2,2,"F"); try{ doc.addImage(LOGO_SPT,"JPEG",W/2-16,y+1.5,32,15); }catch{}
@@ -776,21 +698,21 @@ function renderDash(){
   const L = scoped(), N = L.length, D = $("v-dash");
   if(!N){ D.innerHTML = (isAdmin?'<div class="panel" id="evmgr"></div>':'') + `<div class="panel"><h3>Pas encore de données</h3><p class="cap">Le tableau de bord se remplit dès que les premiers carnets sont saisis : nombre d'évaluations, part des participants actifs, corpulence, condition physique${isAdmin?", activité de chaque évaluateur":""}.</p></div>`; if(isAdmin) renderEvMgr(); return; }
   const nP = PERIODS.map(pp=>L.filter(x=>hasP(x,pp)).length);
-  const avisReq = L.filter(x=>x.f?.qaap==="Avis médical requis").length;
-  const ci = L.filter(x=>x.f?.ci && x.f.ci!=="Aucune contre-indication").length;
+  const avisReq = L.filter(x=>x.f?.qaap==="Avis requis").length;
+  const ci = L.filter(x=>x.f?.ci && x.f.ci!=="Aucune").length;
   // actifs
   const act = PERIODS.map(pp=>{ const v=L.map(x=>{ const pv=x.p?.[pp]||{}; if(pv.niveauAct) return pv.niveauAct; const m=num(pv.minSem); return m===null?null:(m>=150?"A":"I"); }).filter(Boolean); return [v.filter(a=>a==="A").length, v.length]; });
   // moyennes
-  const MEAS=[["poids","Poids (kg)"],["imc","IMC (kg/m²)"],["tourTaille","Tour de taille (cm)"],["fcRepos","FC de repos (bpm)"],["minSem","Minutes actives / sem"],["pas","Pas / jour"],["assis","Temps assis (h/j)"],["ecran","Temps d'écran (h/j)"],["sommeil","Sommeil (h/nuit)"],["stress","Stress (0–10)"]];
+  const MEAS=[["poids","Poids (kg)"],["imc","IMC (kg/m²)"],["tourTaille","Tour de taille (cm)"],["minSem","Minutes actives / sem"],["assis","Temps assis (h/j)"],["fruits","Fruits et légumes (port./j)"],["sommeil","Sommeil (h/nuit)"],["stress","Stress (0–10)"]];
   const rowsM = MEAS.map(([k,l])=>{ const cells=PERIODS.map(pp=>{ const v=L.map(x=>num(x.p?.[pp]?.[k])).filter(v=>v!==null); return `<td>${fmt1(mean(v))} <span class="n">n=${v.length}</span></td>`; }).join(""); return `<tr><td>${esc(l)}</td>${cells}</tr>`; }).join("");
   // IMC T0
   const imc0 = L.map(x=>{ const v=num(x.p?.T0?.imc); if(v!==null) return v; const w=num(x.p?.T0?.poids), h=num(x.f?.taille); return w&&h? w/((h/100)**2):null; }).filter(v=>v!==null);
   const cls=[["Maigreur (< 18,5)",v=>v<18.5],["Normal (18,5–24,9)",v=>v>=18.5&&v<25],["Surpoids (25–29,9)",v=>v>=25&&v<30],["Obésité (30 et plus)",v=>v>=30]];
   // condition physique
-  const cp = PERIODS.map(pp=>{ const v=L.map(x=>x.p?.[pp]?.niveauCP).filter(Boolean); return [["Faible","Moyen","Bon"].map(o=>v.filter(a=>a===o).length), v.length]; });
+  const cp = PERIODS.map(pp=>{ const v=L.map(x=>x.p?.[pp]?.niveauCP).filter(Boolean); return [["F","M","B"].map(o=>v.filter(a=>a===o).length), v.length]; });
   const sexe=[["Femmes",L.filter(x=>x.f?.sexe==="F").length],["Hommes",L.filter(x=>x.f?.sexe==="H").length]];
-  const milieu=[["Urbain",L.filter(x=>x.f?.milieu==="Urbain").length],["Rural",L.filter(x=>x.f?.milieu==="Rural").length]];
-  const sexKnown=sexe[0][1]+sexe[1][1], milKnown=milieu[0][1]+milieu[1][1];
+  const tab0=L.map(x=>x.p?.T0?.tabacAlcool).filter(Boolean);
+  const sexKnown=sexe[0][1]+sexe[1][1];
   // évaluateurs
   let evalTable="";
   if(!$("evalfilter").value){
@@ -822,7 +744,7 @@ function renderDash(){
       <div class="legend"><span><i class="seg1"></i>Faible</span><span><i class="seg2"></i>Moyen</span><span><i class="seg3"></i>Bon</span></div>
       <div class="bars">${PERIODS.map((pp,i)=>stackRow(PLABEL[pp],cp[i][0],cp[i][1])).join("")}</div></div>
     <div class="panel"><h3>Profil des participants</h3>
-      <div class="bars">${sexe.map(([l,n])=>barRow(l,n,sexKnown)).join("")}${milieu.map(([l,n])=>barRow(l,n,milKnown)).join("")}</div></div>
+      <div class="bars">${sexe.map(([l,n])=>barRow(l,n,sexKnown)).join("")}${barRow("Tabac / alcool (T0)",tab0.filter(v=>v==="oui").length,tab0.length)}</div></div>
     <div class="panel"><h3>Q-AAP et avis médical</h3>
       <div class="bars">${barRow("Apte",L.filter(x=>x.f?.qaap==="Apte").length,N)}${barRow("Avis requis",avisReq,N)}${barRow("Contre-indic.",ci,N)}</div></div>
   </div>
