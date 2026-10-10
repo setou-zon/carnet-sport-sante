@@ -131,6 +131,10 @@ details.page[open] > summary{border-bottom:1px solid var(--line)}
 .tabs button[aria-selected="true"]{background:var(--navy);color:var(--navy-fg)}
 .role{font-size:.8rem;color:var(--muted)}
 .role b{color:var(--fg)}
+.net{display:inline-block;font:600 .75rem var(--f-body);padding:2px 8px;border-radius:99px;margin-right:6px;background:var(--box);color:var(--ok)}
+.net.off{background:#FDECEC;color:var(--danger)}
+.net.wait{background:var(--peach);color:#7A5B00}
+.pend{color:#7A5B00;font-weight:600}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
 .kpi .v{font:700 2rem/1 var(--f-display);color:var(--navy);font-variant-numeric:tabular-nums}
@@ -188,7 +192,7 @@ table.dt .n{color:var(--muted);font-size:.72rem}
       <button id="tab-list" role="tab" aria-selected="true">Participants</button>
       <button id="tab-dash" role="tab" aria-selected="false">Tableau de bord</button>
     </nav>
-    <span class="role"><span id="role"></span> · <button class="linkbtn" id="refresh">Actualiser</button> · <button class="linkbtn" id="logout">Déconnexion</button></span>
+    <span class="role"><span id="netstate" class="net" hidden></span><span id="role"></span> · <button class="linkbtn" id="refresh">Actualiser</button> · <button class="linkbtn" id="logout">Déconnexion</button></span>
   </div>
   <p class="msg err" id="access" hidden></p>
   <div class="toolbar" id="evalfilter-row" hidden>
@@ -466,6 +470,7 @@ async function save(){
   if(saving){ again=true; return false; }
   saving=true; clearTimeout(saveTimer);
   const row = {id:cur.id, f:JSON.parse(JSON.stringify(cur.f)), p:JSON.parse(JSON.stringify(cur.p)), updated_at:new Date().toISOString()};
+  if(!navigator.onLine || offlineMode){ const ok=queueLocal(row); saving=false; if(again){ again=false; return save(); } return ok; }
   try{
     const q = cur._exists ? db.from("participants").update(row).eq("id",cur.id).select("id")
                           : db.from("participants").insert({...row, owner:cur.owner||myId}).select("id,f");
@@ -474,15 +479,15 @@ async function save(){
     if(!data || !data.length) throw {code:"denied"};
     if(data[0].f && data[0].f.code && data[0].f.code!==cur.f.code){ cur.f.code=data[0].f.code; $("f-code").value=cur.f.code; $("f-title").textContent=[cur.f.nom,cur.f.code].filter(Boolean).join(" · "); }
     $("clear-per").hidden=!isAdmin;
-    cur._exists = true; dirty=false; $("savestate").textContent="Enregistré ✓"+(cur.f.code?" · code "+cur.f.code:"");
-    upsertLocal();
+    cur._exists = true; cur._pending = false; dirty=false; $("savestate").textContent="Enregistré ✓"+(cur.f.code?" · code "+cur.f.code:"");
+    { const ob=outbox(); if(ob[cur.id]){ delete ob[cur.id]; LS.set(kOut(),ob); } }
+    upsertLocal(); saveCache(); updateNetUI();
   }
   catch(err){
-    const offline = !navigator.onLine || (err && /fetch|network/i.test(err.message||""));
-    $("savestate").textContent = offline ? "Pas de connexion : nouvel essai dans quelques secondes…"
-      : err && (err.code==="denied"||err.code==="42501") ? "Accès refusé : votre compte n'est peut-être pas activé"
+    if(isNetErr(err)){ const ok=queueLocal(row); saving=false; if(again){ again=false; return save(); } return ok; }
+    $("savestate").textContent = err && (err.code==="denied"||err.code==="42501") ? "Accès refusé : votre compte n'est peut-être pas activé"
       : "Échec de l'enregistrement, nouvel essai…";
-    if(offline || !(err && (err.code==="denied"||err.code==="42501"))) setTimeout(save,4000);
+    if(!(err && (err.code==="denied"||err.code==="42501"))) setTimeout(save,4000);
     saving=false; return false; }
   saving=false;
   if(again){ again=false; return save(); }
@@ -504,8 +509,10 @@ $("back").onclick = async () => { if(dirty) await save(); cur=null; view(tab); }
 $("del").onclick = () => { $("del-confirm").hidden=false; };
 $("del-no").onclick = () => { $("del-confirm").hidden=true; };
 $("del-yes").onclick = async () => {
+  if(cur._exists && (!navigator.onLine || offlineMode)){ $("foot-msg").textContent="Suppression impossible hors ligne : réessayez une fois connecté."; $("foot-msg").className="msg err"; return; }
   try{ if(cur._exists){ const {error}=await db.from("participants").delete().eq("id",cur.id); if(error) throw error; }
-    list=list.filter(x=>x.id!==cur.id); cur=null; dirty=false; renderList(); view("list"); }
+    { const ob=outbox(); if(ob[cur.id]){ delete ob[cur.id]; LS.set(kOut(),ob); } }
+    list=list.filter(x=>x.id!==cur.id); cur=null; dirty=false; saveCache(); updateNetUI(); renderList(); view("list"); }
   catch{ $("foot-msg").textContent="Suppression impossible."; $("foot-msg").className="msg err"; }
 };
 $("finish").onclick = async () => {
@@ -514,7 +521,7 @@ $("finish").onclick = async () => {
   $("finish").disabled=true; m.className="msg"; m.textContent="Enregistrement…";
   const ok = await save(); $("finish").disabled=false;
   if(!ok && dirty){ m.className="msg err"; m.textContent="Le carnet n'a pas pu être enregistré. Réessayez."; return; }
-  if(!cur.f.code){ m.className="msg err"; m.textContent="Le code n'a pas encore été attribué. Vérifiez la connexion puis réessayez."; return; }
+  if(!cur.f.code){ m.className="msg err"; m.textContent = (!navigator.onLine||offlineMode) ? "Carnet enregistré sur cet appareil. Le code sera attribué dès le retour de la connexion : vous pourrez alors remettre le carnet." : "Le code n'a pas encore été attribué. Vérifiez la connexion puis réessayez."; return; }
   m.textContent=""; openResult();
 };
 
@@ -711,7 +718,8 @@ function renderList(){
     const b=document.createElement("button"); b.className="pitem"; b.type="button";
     const who=document.createElement("span"); who.className="who"; who.textContent=x.f?.nom||"(sans nom)";
     { const by=document.createElement("span"); by.className="by"; by.textContent="  · "+(x.owner===myId?"vous":evalName(x.owner)); who.append(by); }
-    const code=document.createElement("span"); code.className="code"; code.textContent=[x.f?.code,x.f?.contact,x.updatedAt?"modifié le "+new Date(x.updatedAt).toLocaleDateString("fr-FR"):""].filter(Boolean).join(" · ");
+    const code=document.createElement("span"); code.className="code"; code.textContent=[x.f?.code||(x._pending?"code attribué à l'envoi":""),x.f?.contact,x.updatedAt?"modifié le "+new Date(x.updatedAt).toLocaleDateString("fr-FR"):""].filter(Boolean).join(" · ");
+    if(x._pending){ const pd=document.createElement("span"); pd.className="pend"; pd.textContent="À envoyer · "; code.prepend(pd); }
     const chips=document.createElement("span"); chips.className="chips";
     PERIODS.forEach(pp=>{ const c=document.createElement("span"); const has=hasP(x,pp); c.className="chip"+(has?" on":""); c.textContent=PLABEL[pp]; c.title=has?"Évaluation saisie":"Pas encore saisie"; chips.append(c); });
     if(selMode){ const ck=document.createElement("input"); ck.type="checkbox"; ck.className="ck"; ck.tabIndex=-1; ck.checked=selected.has(x.id); who.prepend(ck); if(ck.checked) b.classList.add("sel"); }
@@ -730,7 +738,8 @@ $("sel-all").onclick=()=>{ const q=$("search").value.trim().toLowerCase(); scope
 $("sel-del").onclick=()=>{ const n=selected.size; $("sel-confirm-txt").textContent=`Supprimer définitivement ${n} carnet${n>1?"s":""} ? Cette action est irréversible. Pensez à exporter la base (CSV) avant si besoin.`; $("sel-confirm").hidden=false; };
 $("sel-no").onclick=()=>{ $("sel-confirm").hidden=true; };
 $("sel-yes").onclick=async()=>{
-  const ids=[...selected]; const m=$("list-msg"); $("sel-yes").disabled=true; m.className="msg"; m.textContent="Suppression…";
+  const ids=[...selected]; const m=$("list-msg");
+  if(!navigator.onLine || offlineMode){ m.className="msg err"; m.textContent="Suppression impossible hors ligne : réessayez une fois connecté."; return; } $("sel-yes").disabled=true; m.className="msg"; m.textContent="Suppression…";
   const {data,error}=await db.from("participants").delete().in("id",ids).select("id");
   $("sel-yes").disabled=false;
   if(error){ m.className="msg err"; m.textContent="Suppression impossible : "+error.message; return; }
@@ -834,19 +843,34 @@ function upsertLocal(){
   list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)); renderList();
 }
 function rebuild(){ renderList(); if(tab==="dash" && !$("v-dash").hidden) renderDash(); }
+function overlayOutbox(){
+  const ob=outbox();
+  Object.entries(ob).forEach(([id,e])=>{ const i=list.findIndex(x=>x.id===id); const base=i>=0?list[i]:{id, owner:e.owner, createdAt:Date.parse(e.row.updated_at)};
+    const x={...base, f:e.row.f, p:e.row.p, updatedAt:Date.parse(e.row.updated_at), updatedBy:myId, _pending:true, _exists: i>=0 ? base._exists : false};
+    if(i>=0) list[i]=x; else list.unshift(x); });
+  list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+}
 async function loadAll(){
   const m=$("list-msg");
-  const {data,error} = await db.from("participants").select("*").order("updated_at",{ascending:false}).limit(5000);
-  if(error){ m.textContent="Les carnets n'ont pas pu être chargés. Vérifiez votre connexion puis cliquez sur Actualiser."; m.className="msg err"; return; }
-  m.textContent=""; list = data.map(toLocal);
+  let data=null, error=null;
+  if(navigator.onLine){ try{ ({data,error} = await db.from("participants").select("*").order("updated_at",{ascending:false}).limit(5000)); }catch(e){ error=e; } }
+  else error={message:"offline"};
+  if(error){
+    const c=LS.get(kCache());
+    if(isNetErr(error) && c){ offlineMode=true; list=c.list||[]; profiles=c.profiles||[]; profiles.forEach(p=>names[p.id]=p.nom||p.email);
+      m.className="msg"; m.textContent=`Hors ligne : carnets enregistrés sur cet appareil le ${new Date(c.at).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"})}. Vos saisies seront envoyées à la reconnexion.`; }
+    else { m.textContent= isNetErr(error) ? "Hors ligne et aucun carnet encore enregistré sur cet appareil. Connectez-vous à internet une première fois." : "Les carnets n'ont pas pu être chargés. Vérifiez votre connexion puis cliquez sur Actualiser."; m.className="msg err"; updateNetUI(); return; }
+  } else { offlineMode=false; m.textContent=""; list = data.map(toLocal); }
+  overlayOutbox();
   {
-    const r = await db.from("profiles").select("*").order("created_at");
-    if(!r.error){ profiles=r.data; profiles.forEach(p=>names[p.id]=p.nom||p.email); }
+    if(!offlineMode){ const r = await db.from("profiles").select("*").order("created_at").then(x=>x,e=>({error:e}));
+      if(!r.error){ profiles=r.data; profiles.forEach(p=>names[p.id]=p.nom||p.email); } }
     const sel=$("evalfilter"), keep=sel.value;
     sel.innerHTML='<option value="">Tous les évaluateurs</option>'+`<option value="${esc(myId)}">Mes carnets</option>`+profiles.filter(p=>p.actif&&p.id!==myId).map(p=>`<option value="${esc(p.id)}">${esc(p.nom||p.email)}</option>`).join("");
     sel.value = firstLoad ? myId : keep; firstLoad=false;
   }
-  rebuild();
+  if(!offlineMode) saveCache();
+  updateNetUI(); rebuild();
 }
 function renderEvMgr(){
   const el=$("evmgr"); if(!el) return;
@@ -861,6 +885,7 @@ function renderEvMgr(){
   el.querySelectorAll("[data-adm]").forEach(b=>b.onclick=()=>updProfile(b.dataset.adm,{role:b.dataset.v==="1"?"admin":"evaluateur"}));
 }
 async function updProfile(id, patch){
+  if(!navigator.onLine || offlineMode){ const m=$("ev-msg"); if(m){ m.textContent="Hors ligne : la gestion des comptes demande une connexion."; m.className="msg err"; } return; }
   const {error} = await db.from("profiles").update(patch).eq("id",id);
   if(error){ const m=$("ev-msg"); if(m){ m.textContent="Modification impossible."; m.className="msg err"; } return; }
   const p=profiles.find(x=>x.id===id); Object.assign(p,patch); await loadAll(); renderDash();
@@ -892,24 +917,95 @@ $("auth-form").addEventListener("submit", async e=>{
   if(signup && !r.data.session){ m.className="msg ok"; m.textContent="Compte créé. Ouvrez le lien de confirmation reçu par email, puis connectez-vous."; return; }
   m.textContent=""; start();
 });
-async function logout(){ await sb.auth.signOut(); list=[]; profiles=[]; cur=null; myId=null; showAuth(); }
+let logoutArmed=false;
+async function logout(){
+  const n=myId?Object.keys(outbox()).length:0;
+  if(n && !logoutArmed){ logoutArmed=true; const m=$("list-msg"); m.className="msg err";
+    m.textContent=`${n} carnet${n>1?"s":""} pas encore envoyé${n>1?"s":""}. Reconnectez-vous à internet avant de vous déconnecter, sinon ${n>1?"ils seront perdus":"il sera perdu"}. Touchez à nouveau Déconnexion pour confirmer.`; setTimeout(()=>logoutArmed=false,15000); return; }
+  logoutArmed=false;
+  try{ await sb.auth.signOut({scope:"local"}); }catch{}
+  if(myId){ LS.del(kCache()); LS.del(kOut()); } LS.del("cs:lastuser");
+  list=[]; profiles=[]; cur=null; myId=null; offlineMode=false; updateNetUI(); showAuth(); }
 $("logout").onclick=logout; $("pending-logout").onclick=logout; $("pending-retry").onclick=()=>start();
-$("refresh").onclick=()=>loadAll();
+$("refresh").onclick=async()=>{ await sync(); await loadAll(); };
 
 /* ---------- boot ---------- */
 async function start(){
-  const {data:{session}} = await sb.auth.getSession();
-  if(!session){ showAuth(); return; }
-  myId = session.user.id;
-  const {data:prof} = await db.from("profiles").select("*").eq("id",myId).maybeSingle();
-  myName = prof?.nom || session.user.email; isAdmin = prof?.role==="admin" && prof?.actif;
+  let session=null; try{ ({data:{session}} = await sb.auth.getSession()); }catch{}
+  const last=LS.get("cs:lastuser");
+  let prof=null;
+  if(!session){
+    const c = last && LS.get("cs:cache:"+last.id);
+    if(!navigator.onLine && c && c.me){ myId=last.id; offlineMode=true; prof={nom:c.me.name, role:c.me.isAdmin?"admin":"evaluateur", actif:true}; }
+    else { showAuth(); if(!navigator.onLine){ $("auth-msg").className="msg err"; $("auth-msg").textContent="Hors ligne : la première connexion demande internet."; } return; }
+  } else {
+    myId = session.user.id; LS.set("cs:lastuser",{id:myId});
+    const r = await db.from("profiles").select("*").eq("id",myId).maybeSingle().then(x=>x,e=>({error:e}));
+    if(r.error && isNetErr(r.error)){ const c=LS.get(kCache()); if(c&&c.me){ offlineMode=true; prof={nom:c.me.name, role:c.me.isAdmin?"admin":"evaluateur", actif:true}; } }
+    else prof=r.data;
+  }
+  myName = prof?.nom || session?.user?.email || ""; isAdmin = prof?.role==="admin" && prof?.actif;
   $("v-auth").hidden=true;
   if(!prof || !prof.actif){ ["v-list","v-dash","navrow","evalfilter-row","top-actions"].forEach(id=>$(id).hidden=true); $("v-pending").hidden=false; return; }
   $("v-pending").hidden=true;
   $("role").innerHTML = isAdmin?`<b>${esc(myName)}</b> · administrateur`:`<b>${esc(myName)}</b> · évaluateur · vous voyez les carnets de toute l'équipe`;
   $("sel-toggle").hidden=!isAdmin;
-  view("list"); await loadAll();
+  view("list"); await loadAll(); sync();
 }
+/* ---------- mode hors ligne : cache local + file d'envoi ---------- */
+const LS = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
+             set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch{ return false; } },
+             del(k){ try{ localStorage.removeItem(k); }catch{} } };
+var offlineMode=false, syncing=false;
+const isNetErr = e => !navigator.onLine || /fetch|network|load failed|timeout|offline|abort/i.test(String(e&&(e.message||e.details||e)||""));
+const kCache = () => "cs:cache:"+myId, kOut = () => "cs:outbox:"+myId;
+const outbox = () => (myId && LS.get(kOut())) || {};
+function saveCache(){ if(!myId) return; LS.set(kCache(), {list, profiles, me:{name:myName, isAdmin}, at:Date.now()}); }
+function queueLocal(row){
+  const ob=outbox(); const prev=ob[row.id];
+  ob[row.id]={row, isNew: prev ? prev.isNew : !cur._exists, owner: cur.owner||myId};
+  if(!LS.set(kOut(),ob)){ $("savestate").textContent="Mémoire de l'appareil pleine : saisie NON enregistrée"; return false; }
+  cur._pending=true; dirty=false;
+  $("savestate").textContent="Enregistré sur cet appareil · envoi automatique au retour de la connexion";
+  const x=JSON.parse(JSON.stringify({...cur, updatedAt:Date.now(), updatedBy:myId})); const i=list.findIndex(y=>y.id===x.id); if(i>=0) list[i]=x; else list.unshift(x);
+  saveCache(); updateNetUI(); renderList(); return true;
+}
+function updateNetUI(){
+  const el=$("netstate"); if(!el) return;
+  const n=myId?Object.keys(outbox()).length:0, off=!navigator.onLine||offlineMode;
+  el.hidden = !off && !n;
+  el.className = "net"+(off?" off":n?" wait":"");
+  el.textContent = off ? ("● Hors ligne"+(n?` · ${n} à envoyer`:"")) : (syncing?`↻ Envoi de ${n} carnet${n>1?"s":""}…`:`↻ ${n} à envoyer`);
+}
+async function sync(){
+  if(syncing || !myId || !navigator.onLine) { updateNetUI(); return; }
+  let ob=outbox(); const ids=Object.keys(ob);
+  let session=null; try{ ({data:{session}} = await sb.auth.getSession()); }catch{}
+  if(!session){ if(ids.length){ $("list-msg").className="msg err"; $("list-msg").textContent="Reconnectez-vous pour envoyer les carnets enregistrés sur cet appareil."; } return; }
+  if(offlineMode && !ids.length){ offlineMode=false; await loadAll(); return; }
+  if(!ids.length){ updateNetUI(); return; }
+  syncing=true; updateNetUI(); let sent=0, failed=0;
+  for(const id of ids){
+    const e=ob[id];
+    let r = e.isNew ? await db.from("participants").insert({...e.row, owner:e.owner}).select("id,f").then(x=>x,er=>({error:er}))
+                    : await db.from("participants").update(e.row).eq("id",id).select("id,f").then(x=>x,er=>({error:er}));
+    if(r.error && r.error.code==="23505") r = await db.from("participants").update(e.row).eq("id",id).select("id,f").then(x=>x,er=>({error:er}));
+    if(r.error){ if(isNetErr(r.error)) break; failed++; continue; }
+    if(!r.data || !r.data.length){ failed++; continue; }
+    ob=outbox(); if(ob[id] && ob[id].row.updated_at===e.row.updated_at){ delete ob[id]; } else if(ob[id]) { ob[id].isNew=false; }
+    LS.set(kOut(),ob); sent++;
+    if(cur && cur.id===id){ cur._exists=true; cur._pending=!!ob[id]; const code=r.data[0].f&&r.data[0].f.code; if(code && !cur.f.code){ cur.f.code=code; $("f-code").value=code; $("f-title").textContent=[cur.f.nom,code].filter(Boolean).join(" · "); $("savestate").textContent="Envoyé ✓ · code "+code; } }
+  }
+  syncing=false;
+  const left=Object.keys(outbox()).length, m=$("list-msg");
+  if(sent){ offlineMode=false; await loadAll(); m.className="msg ok"; m.textContent=`${sent} carnet${sent>1?"s":""} envoyé${sent>1?"s":""}.`+(left?` ${left} restant${left>1?"s":""}.`:""); }
+  if(failed){ m.className="msg err"; m.textContent=`${failed} carnet${failed>1?"s":""} refusé${failed>1?"s":""} par le serveur (compte désactivé ?). Ils restent sur cet appareil.`; }
+  updateNetUI();
+}
+window.addEventListener("online", ()=>{ updateNetUI(); sync(); });
+window.addEventListener("offline", ()=>{ updateNetUI(); });
+setInterval(()=>{ if(navigator.onLine && myId && (Object.keys(outbox()).length || offlineMode)) sync(); }, 30000);
+
 /* ---------- PWA : installation et mode hors ligne de l'interface ---------- */
 let deferredPrompt=null;
 const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
