@@ -135,6 +135,24 @@ details.page[open] > summary{border-bottom:1px solid var(--line)}
 .net.off{background:#FDECEC;color:var(--danger)}
 .net.wait{background:var(--peach);color:#7A5B00}
 .pend{color:#7A5B00;font-weight:600}
+.modbar{display:flex;gap:6px;flex-wrap:wrap}
+.modbar button{border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 .88rem var(--f-body);padding:8px 14px;border-radius:99px;cursor:pointer}
+.modbar button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--navy-fg)}
+.subnav{display:flex;gap:4px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
+.subnav button{border:0;background:none;color:var(--muted);font:600 .88rem var(--f-body);padding:7px 12px;border-radius:7px;cursor:pointer}
+.subnav button[aria-selected="true"]{background:var(--navy);color:var(--navy-fg)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.filters .fld{flex:1 1 140px;min-width:0}
+.st{font:600 .72rem var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.st.soumis{background:var(--peach);color:#7A5B00} .st.valide{background:var(--box);color:var(--ok)} .st.a_corriger{background:#FDECEC;color:var(--danger)} .st.manque{background:#F1F3F2;color:var(--muted)}
+.prow2{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;width:100%}
+.prow2:hover{background:var(--box)} .prow2:last-child{border-bottom:0}
+.prow2 .t{font-weight:600;min-width:0;overflow-wrap:anywhere} .prow2 .s{color:var(--muted);font-size:.82rem;min-width:0;overflow-wrap:anywhere}
+.prow2 .r{grid-column:2;grid-row:1/3;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-variant-numeric:tabular-nums}
+.grid7 input{width:100%;text-align:center;font-variant-numeric:tabular-nums;padding:7px 4px}
+table.dt td.l{text-align:left}
+.warnlist{margin:0;padding-left:18px;font-size:.86rem;display:flex;flex-direction:column;gap:4px}
+.okline{color:var(--ok);font-size:.88rem}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
 .kpi .v{font:700 2rem/1 var(--f-display);color:var(--navy);font-variant-numeric:tabular-nums}
@@ -187,6 +205,11 @@ table.dt .n{color:var(--muted);font-size:.72rem}
       <button class="btn primary" id="new">+ Nouveau participant</button>
     </div>
   </div>
+  <div class="modbar" id="modbar" hidden>
+    <button data-mod="carnets" aria-pressed="true">Carnets santé</button>
+    <button data-mod="spt" aria-pressed="false">Sport pour tous</button>
+    <button data-mod="comptes" aria-pressed="false">Comptes</button>
+  </div>
   <div class="navrow" id="navrow">
     <nav class="tabs" role="tablist">
       <button id="tab-list" role="tab" aria-selected="true">Participants</button>
@@ -205,18 +228,31 @@ table.dt .n{color:var(--muted);font-size:.72rem}
     <p class="sub" id="auth-sub">Connectez-vous avec le compte que vous avez créé.</p>
     <form id="auth-form" style="display:flex;flex-direction:column;gap:12px" novalidate>
       <label class="fld" id="auth-nom-row" hidden><span class="l">Nom et prénom</span><input id="auth-nom" autocomplete="name"></label>
+      <label class="fld" id="auth-niv-row" hidden><span class="l">Je suis</span><select id="auth-niv">
+        <option value="evaluateur">Évaluateur Sport Santé (carnets)</option>
+        <option value="promoteur">Promoteur sportif (site de pratique)</option>
+        <option value="dpsje">Agent DPSJE (direction provinciale)</option>
+        <option value="drsje">Agent DRSJE (direction régionale)</option>
+        <option value="national">SSEC / DST (niveau national)</option></select></label>
+      <label class="fld" id="auth-prov-row" hidden><span class="l">Province</span><select id="auth-prov"></select></label>
+      <label class="fld" id="auth-reg-row" hidden><span class="l">Région</span><select id="auth-reg"></select></label>
       <label class="fld"><span class="l">Email</span><input id="auth-email" type="email" autocomplete="email" required></label>
       <label class="fld"><span class="l">Mot de passe</span><input id="auth-pass" type="password" autocomplete="current-password" required minlength="6"></label>
       <button class="btn primary" type="submit" id="auth-go">Se connecter</button>
       <span class="msg" id="auth-msg" role="status"></span>
     </form>
-    <p class="sub" style="margin:0"><span id="auth-switch-txt">Pas encore de compte ?</span> <button class="linkbtn" id="auth-switch">Créer un compte évaluateur</button></p>
+    <p class="sub" style="margin:0"><span id="auth-switch-txt">Pas encore de compte ?</span> <button class="linkbtn" id="auth-switch">Créer un compte</button></p>
   </section>
   <section id="v-pending" hidden class="auth">
     <h2>Compte en attente</h2>
     <p class="sub">Votre compte est créé. L'administrateur doit l'activer avant que vous puissiez saisir des carnets. Revenez sur cette page une fois prévenu(e).</p>
     <div class="row-actions"><button class="btn primary" id="pending-retry">Vérifier à nouveau</button><button class="btn" id="pending-logout">Déconnexion</button></div>
   </section>
+
+  <!-- SPORT POUR TOUS -->
+  <section id="v-spt" hidden style="display:flex;flex-direction:column;gap:12px"></section>
+  <!-- COMPTES (administrateur) -->
+  <section id="v-comptes" hidden style="display:flex;flex-direction:column;gap:12px"><div class="panel" id="evmgr2"></div></section>
 
   <!-- TABLEAU DE BORD -->
   <section id="v-dash" hidden style="display:flex;flex-direction:column;gap:14px"></section>
@@ -363,6 +399,7 @@ const dfr = v => { if(!v) return ""; const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v)
 const num = v => { const x=parseFloat(String(v).replace(",",".")); return isFinite(x)?x:null; };
 function view(v){
   if(v!=="list" && typeof selMode!=="undefined" && selMode) setSel(false);
+  $("v-spt").hidden=true; $("v-comptes").hidden=true; $("navrow").querySelector(".tabs").hidden=false;
   $("v-list").hidden = v!=="list"; $("v-dash").hidden = v!=="dash"; $("v-fiche").hidden = v!=="fiche"; $("v-result").hidden = v!=="result";
   $("footbar").hidden = v!=="fiche"; $("top-actions").hidden = v!=="list";
   const home = v==="list"||v==="dash";
@@ -866,39 +903,49 @@ async function loadAll(){
     if(!offlineMode){ const r = await db.from("profiles").select("*").order("created_at").then(x=>x,e=>({error:e}));
       if(!r.error){ profiles=r.data; profiles.forEach(p=>names[p.id]=p.nom||p.email); } }
     const sel=$("evalfilter"), keep=sel.value;
-    sel.innerHTML='<option value="">Tous les évaluateurs</option>'+`<option value="${esc(myId)}">Mes carnets</option>`+profiles.filter(p=>p.actif&&p.id!==myId).map(p=>`<option value="${esc(p.id)}">${esc(p.nom||p.email)}</option>`).join("");
+    sel.innerHTML='<option value="">Tous les évaluateurs</option>'+`<option value="${esc(myId)}">Mes carnets</option>`+profiles.filter(p=>p.actif&&p.id!==myId&&(p.niveau==="evaluateur"||p.role==="admin")).map(p=>`<option value="${esc(p.id)}">${esc(p.nom||p.email)}</option>`).join("");
     sel.value = firstLoad ? myId : keep; firstLoad=false;
   }
   if(!offlineMode) saveCache();
   updateNetUI(); rebuild();
 }
-function renderEvMgr(){
-  const el=$("evmgr"); if(!el) return;
+function renderEvMgr(target){
+  const el=$(target||"evmgr"); if(!el) return;
   const pend = profiles.filter(p=>!p.actif).length;
-  el.innerHTML = `<h3>Évaluateurs${pend?` · <span style="color:var(--orange)">${pend} en attente</span>`:""}</h3>
-    <p class="cap">Activez chaque nouveau compte après avoir vérifié qu'il s'agit bien d'un de vos évaluateurs. Un compte désactivé ne peut plus ni voir ni saisir de carnets.</p>
-    <div>${profiles.map(p=>`<div class="evrow"><span class="who"><b>${esc(p.nom||"(sans nom)")}</b><br><span class="em">${esc(p.email||"")}${p.role==="admin"?" · administrateur":""}</span></span>
+  const terr=p=> p.niveau==="drsje" ? (regById(p.region_id)?.nom||"région ?") : (p.niveau==="dpsje"||p.niveau==="promoteur") ? (provById(p.province_id)?.nom||"province ?") : p.niveau==="national"?"national":"";
+  el.innerHTML = `<h3>Comptes${pend?` · <span style="color:var(--orange)">${pend} en attente</span>`:""}</h3>
+    <p class="cap">Vérifiez le profil et le territoire demandés avant d'activer un compte. Un compte désactivé ne peut plus rien voir ni saisir. Les promoteurs et les directions ne voient jamais les carnets santé.</p>
+    <div>${profiles.map(p=>`<div class="evrow"><span class="who"><b>${esc(p.nom||"(sans nom)")}</b><br><span class="em">${esc(p.email||"")} · ${esc(NIV_LABEL[p.niveau]||p.niveau)}${terr(p)?" · "+esc(terr(p)):""}${p.role==="admin"?" · administrateur":""}</span></span>
       <span class="pill ${p.actif?"on":"off"}">${p.actif?"Actif":"En attente"}</span>
-      ${p.id===myId?'<span class="em">vous</span>':`<span class="row-actions"><button class="btn" data-act="${esc(p.id)}" data-v="${p.actif?0:1}">${p.actif?"Désactiver":"Activer"}</button><button class="btn" data-adm="${esc(p.id)}" data-v="${p.role==="admin"?0:1}">${p.role==="admin"?"Retirer admin":"Rendre admin"}</button></span>`}
+      ${p.id===myId?'<span class="em">vous</span>':`<span class="row-actions"><button class="btn" data-act="${esc(p.id)}" data-v="${p.actif?0:1}">${p.actif?"Désactiver":"Activer"}</button><button class="btn" data-adm="${esc(p.id)}" data-v="${p.role==="admin"?0:1}">${p.role==="admin"?"Retirer admin":"Rendre admin"}</button>
+        <select data-niv="${esc(p.id)}">${Object.entries(NIV_LABEL).map(([k,l])=>`<option value="${k}" ${p.niveau===k?"selected":""}>${esc(l)}</option>`).join("")}</select>
+        <select data-terr="${esc(p.id)}"><option value="">Territoire…</option><optgroup label="Provinces">${PROV.map(v=>`<option value="p${v.id}" ${p.province_id===v.id&&p.niveau!=="drsje"?"selected":""}>${esc(v.nom)}</option>`).join("")}</optgroup><optgroup label="Régions">${REG.map(r=>`<option value="r${r.id}" ${p.niveau==="drsje"&&p.region_id===r.id?"selected":""}>${esc(r.nom)}</option>`).join("")}</optgroup></select>
+        <button class="btn" data-savenv="${esc(p.id)}">Enregistrer le profil</button></span>`}
     </div>`).join("")}</div><span class="msg" id="ev-msg"></span>`;
   el.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>updProfile(b.dataset.act,{actif:b.dataset.v==="1"}));
   el.querySelectorAll("[data-adm]").forEach(b=>b.onclick=()=>updProfile(b.dataset.adm,{role:b.dataset.v==="1"?"admin":"evaluateur"}));
+  el.querySelectorAll("[data-savenv]").forEach(b=>b.onclick=()=>{ const id=b.dataset.savenv, nv=el.querySelector(`[data-niv="${id}"]`).value, t=el.querySelector(`[data-terr="${id}"]`).value;
+    const patch={niveau:nv}; if(t.startsWith("p")){ const pv=provById(+t.slice(1)); patch.province_id=pv.id; patch.region_id=pv.region_id; } else if(t.startsWith("r")){ patch.region_id=+t.slice(1); patch.province_id=null; } else { patch.province_id=null; patch.region_id=null; }
+    const m=$("ev-msg"); if((nv==="promoteur"||nv==="dpsje") && !patch.province_id){ m.className="msg err"; m.textContent="Choisissez une province pour ce profil."; return; } if(nv==="drsje" && !patch.region_id){ m.className="msg err"; m.textContent="Choisissez une région pour un agent DRSJE."; return; }
+    updProfile(id,patch); });
 }
 async function updProfile(id, patch){
   if(!navigator.onLine || offlineMode){ const m=$("ev-msg"); if(m){ m.textContent="Hors ligne : la gestion des comptes demande une connexion."; m.className="msg err"; } return; }
   const {error} = await db.from("profiles").update(patch).eq("id",id);
   if(error){ const m=$("ev-msg"); if(m){ m.textContent="Modification impossible."; m.className="msg err"; } return; }
-  const p=profiles.find(x=>x.id===id); Object.assign(p,patch); await loadAll(); renderDash();
+  const p=profiles.find(x=>x.id===id); Object.assign(p,patch);
+  if(mod==="comptes"){ await loadProfiles(); renderEvMgr("evmgr2"); const m=$("ev-msg"); if(m){ m.className="msg ok"; m.textContent="Profil mis à jour ✓"; } }
+  else { await loadAll(); renderDash(); }
 }
 
 /* ---------- auth ---------- */
 let signup=false;
-function showAuth(){ ["v-list","v-dash","v-fiche","v-result","v-pending","navrow","evalfilter-row","top-actions","footbar"].forEach(id=>$(id).hidden=true); $("v-auth").hidden=false; }
+function showAuth(){ ["v-list","v-dash","v-fiche","v-result","v-pending","navrow","evalfilter-row","top-actions","footbar","v-spt","v-comptes","modbar"].forEach(id=>$(id).hidden=true); $("v-auth").hidden=false; fillAuthTerr(); }
 $("auth-switch").onclick=()=>{ signup=!signup;
-  $("auth-title").textContent=signup?"Créer un compte évaluateur":"Connexion";
+  $("auth-title").textContent=signup?"Créer un compte":"Connexion";
   $("auth-sub").textContent=signup?"Après création, l'administrateur doit activer votre compte.":"Connectez-vous avec le compte que vous avez créé.";
-  $("auth-nom-row").hidden=!signup; $("auth-go").textContent=signup?"Créer mon compte":"Se connecter";
-  $("auth-switch-txt").textContent=signup?"Déjà un compte ?":"Pas encore de compte ?"; $("auth-switch").textContent=signup?"Se connecter":"Créer un compte évaluateur";
+  $("auth-nom-row").hidden=!signup; $("auth-niv-row").hidden=!signup; authNivChange(); $("auth-go").textContent=signup?"Créer mon compte":"Se connecter";
+  $("auth-switch-txt").textContent=signup?"Déjà un compte ?":"Pas encore de compte ?"; $("auth-switch").textContent=signup?"Se connecter":"Créer un compte";
   $("auth-pass").autocomplete=signup?"new-password":"current-password"; $("auth-msg").textContent=""; };
 $("auth-form").addEventListener("submit", async e=>{
   e.preventDefault(); const m=$("auth-msg"); m.className="msg err";
@@ -906,8 +953,11 @@ $("auth-form").addEventListener("submit", async e=>{
   if(!/^\S+@\S+\.\S+$/.test(email)){ m.textContent="Saisissez une adresse email valide."; return; }
   if(pass.length<6){ m.textContent="Le mot de passe doit faire au moins 6 caractères."; return; }
   if(signup && !nom){ m.textContent="Indiquez votre nom et prénom."; return; }
+  const niv=$("auth-niv").value, apv=$("auth-prov").value, arg=$("auth-reg").value;
+  if(signup && (niv==="promoteur"||niv==="dpsje") && !apv){ m.textContent="Choisissez votre province."; return; }
+  if(signup && niv==="drsje" && !arg){ m.textContent="Choisissez votre région."; return; }
   $("auth-go").disabled=true; m.className="msg"; m.textContent=signup?"Création du compte…":"Connexion…";
-  const r = signup ? await sb.auth.signUp({email,password:pass,options:{data:{nom}}}) : await sb.auth.signInWithPassword({email,password:pass});
+  const r = signup ? await sb.auth.signUp({email,password:pass,options:{data:{nom, niveau:niv, province_id:(niv==="promoteur"||niv==="dpsje")?apv:"", region_id:niv==="drsje"?arg:""}}}) : await sb.auth.signInWithPassword({email,password:pass});
   $("auth-go").disabled=false;
   if(r.error){ m.className="msg err";
     m.textContent = /invalid login/i.test(r.error.message)?"Email ou mot de passe incorrect."
@@ -918,16 +968,24 @@ $("auth-form").addEventListener("submit", async e=>{
   m.textContent=""; start();
 });
 let logoutArmed=false;
+function authNivChange(){
+  const v=$("auth-niv").value;
+  $("auth-prov-row").hidden = !signup || !(v==="promoteur"||v==="dpsje");
+  $("auth-reg-row").hidden = !signup || v!=="drsje";
+}
+$("auth-niv").onchange=authNivChange;
+async function fillAuthTerr(){ await loadTerritoires(); $("auth-prov").innerHTML='<option value="">Choisir…</option>'+PROV.map(p=>`<option value="${p.id}">${esc(p.nom)} (${esc(regById(p.region_id)?.nom||"")})</option>`).join(""); $("auth-reg").innerHTML='<option value="">Choisir…</option>'+REG.map(r=>`<option value="${r.id}">${esc(r.nom)}</option>`).join(""); }
 async function logout(){
-  const n=myId?Object.keys(outbox()).length:0;
+  const n=myId?Object.keys(outbox()).length+sptQueue().length:0;
   if(n && !logoutArmed){ logoutArmed=true; const m=$("list-msg"); m.className="msg err";
     m.textContent=`${n} carnet${n>1?"s":""} pas encore envoyé${n>1?"s":""}. Reconnectez-vous à internet avant de vous déconnecter, sinon ${n>1?"ils seront perdus":"il sera perdu"}. Touchez à nouveau Déconnexion pour confirmer.`; setTimeout(()=>logoutArmed=false,15000); return; }
   logoutArmed=false;
   try{ await sb.auth.signOut({scope:"local"}); }catch{}
-  if(myId){ LS.del(kCache()); LS.del(kOut()); } LS.del("cs:lastuser");
+  if(myId){ LS.del(kCache()); LS.del(kOut()); LS.del(kSpt()); LS.del(kSptQ()); LS.del("cs:me:"+myId); } LS.del("cs:lastuser");
+  sites=[]; pres=[]; trans=[]; sptLoaded=false; sptTab=null; sptView=null; $("modbar").hidden=true; $("v-spt").hidden=true; $("v-comptes").hidden=true;
   list=[]; profiles=[]; cur=null; myId=null; offlineMode=false; updateNetUI(); showAuth(); }
 $("logout").onclick=logout; $("pending-logout").onclick=logout; $("pending-retry").onclick=()=>start();
-$("refresh").onclick=async()=>{ await sync(); await loadAll(); };
+$("refresh").onclick=async()=>{ if(mod==="spt"){ await sptSync(); await sptLoad(); renderSpt(); return; } if(mod==="comptes"){ await loadProfiles(); renderEvMgr("evmgr2"); return; } await sync(); await loadAll(); };
 
 /* ---------- boot ---------- */
 async function start(){
@@ -936,22 +994,453 @@ async function start(){
   let prof=null;
   if(!session){
     const c = last && LS.get("cs:cache:"+last.id);
-    if(!navigator.onLine && c && c.me){ myId=last.id; offlineMode=true; prof={nom:c.me.name, role:c.me.isAdmin?"admin":"evaluateur", actif:true}; }
+    const me0 = last && LS.get("cs:me:"+last.id);
+    if(!navigator.onLine && me0){ myId=last.id; offlineMode=true; prof=me0; }
     else { showAuth(); if(!navigator.onLine){ $("auth-msg").className="msg err"; $("auth-msg").textContent="Hors ligne : la première connexion demande internet."; } return; }
   } else {
     myId = session.user.id; LS.set("cs:lastuser",{id:myId});
     const r = await db.from("profiles").select("*").eq("id",myId).maybeSingle().then(x=>x,e=>({error:e}));
-    if(r.error && isNetErr(r.error)){ const c=LS.get(kCache()); if(c&&c.me){ offlineMode=true; prof={nom:c.me.name, role:c.me.isAdmin?"admin":"evaluateur", actif:true}; } }
-    else prof=r.data;
+    if(r.error && isNetErr(r.error)){ const me0=LS.get("cs:me:"+myId); if(me0){ offlineMode=true; prof=me0; } }
+    else { prof=r.data; if(prof && prof.actif) LS.set("cs:me:"+myId, prof); }
   }
   myName = prof?.nom || session?.user?.email || ""; isAdmin = prof?.role==="admin" && prof?.actif;
   $("v-auth").hidden=true;
   if(!prof || !prof.actif){ ["v-list","v-dash","navrow","evalfilter-row","top-actions"].forEach(id=>$(id).hidden=true); $("v-pending").hidden=false; return; }
   $("v-pending").hidden=true;
-  $("role").innerHTML = isAdmin?`<b>${esc(myName)}</b> · administrateur`:`<b>${esc(myName)}</b> · évaluateur · vous voyez les carnets de toute l'équipe`;
+  niveau = prof.niveau||"evaluateur"; meProv = prof.province_id||null; meReg = prof.region_id||null;
+  await loadTerritoires();
+  const terr = niveau==="promoteur"||niveau==="dpsje" ? " · "+(provById(meProv)?.nom||"") : niveau==="drsje" ? " · région "+(regById(meReg)?.nom||"") : "";
+  $("role").innerHTML = isAdmin?`<b>${esc(myName)}</b> · administrateur` : niveau==="evaluateur" ? `<b>${esc(myName)}</b> · évaluateur · vous voyez les carnets de toute l'équipe` : `<b>${esc(myName)}</b> · ${esc(NIV_LABEL[niveau])}${esc(terr)}`;
   $("sel-toggle").hidden=!isAdmin;
-  view("list"); await loadAll(); sync();
+  $("topsub").textContent = niveau==="evaluateur"||isAdmin ? $("topsub").textContent : "Fiches de fréquentation des sites Sport pour tous et remontée des données.";
+  if(isAdmin){ $("modbar").hidden=false; setMod("carnets"); }
+  else if(niveau==="evaluateur"){ view("list"); await loadAll(); sync(); }
+  else { mod="spt"; await sptSync(); showSpt(); await sptLoad(); renderSpt(); }
 }
+/* ================== SPORT POUR TOUS : circuit de remontée des données ================== */
+/* Site (promoteur) → DPSJE (province) → DRSJE (région) → SSEC / DST (national) */
+let niveau="evaluateur", meProv=null, meReg=null, mod="carnets";
+let REG=[], PROV=[], sites=[], pres=[], trans=[], sptLoaded=false, sptOffline=false;
+let sptTab=null, sptView=null, sptEdit=null;
+const NOW=new Date();
+const F={ annee: NOW.getFullYear(), mois: NOW.getMonth()+1, trim: Math.ceil((NOW.getMonth()+1)/3), sem: NOW.getMonth()<6?1:2, reg:"", prov:"", site:"", statut:"", per:"annee" };
+const NIV_LABEL={evaluateur:"Évaluateur Sport Santé",promoteur:"Promoteur sportif",dpsje:"DPSJE (provincial)",drsje:"DRSJE (régional)",national:"SSEC / DST (national)"};
+const DAYS=[["lun","Lundi"],["mar","Mardi"],["mer","Mercredi"],["jeu","Jeudi"],["ven","Vendredi"],["sam","Samedi"],["dim","Dimanche"]];
+const MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const STATUT={soumis:"Soumise",valide:"Validée",a_corriger:"À corriger"};
+const provById=id=>PROV.find(p=>p.id===+id), regById=id=>REG.find(r=>r.id===+id);
+const siteById=id=>sites.find(x=>x.id===id);
+const siteProv=s=>provById(s&&s.province_id), siteReg=s=>{ const p=siteProv(s); return p&&regById(p.region_id); };
+const isCtrl=()=>isAdmin||niveau==="dpsje";
+const canSeeAll=()=>isAdmin||niveau==="national";
+
+/* ---- semaines ISO ---- */
+function isoWeek(d){ const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); const day=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-day); const y=t.getUTCFullYear(); return [y, Math.ceil(((t-Date.UTC(y,0,1))/864e5+1)/7)]; }
+function weekMonday(y,w){ const s=new Date(Date.UTC(y,0,4)); const day=s.getUTCDay()||7; s.setUTCDate(s.getUTCDate()-day+1+(w-1)*7); return s; }
+const weeksInYear=y=>isoWeek(new Date(y,11,28))[1];
+const fmtDM=d=>d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",timeZone:"UTC"});
+function weekLabel(y,w){ const m=weekMonday(y,w), e=new Date(m); e.setUTCDate(e.getUTCDate()+6); return `Semaine ${w} · du ${fmtDM(m)} au ${fmtDM(e)}`; }
+function weekMonth(y,w){ const t=weekMonday(y,w); t.setUTCDate(t.getUTCDate()+3); return t.getUTCMonth()+1; }
+/* semaines attendues sur une liste de mois, jusqu'à la semaine en cours, et après la création du site */
+function expectedWeeks(y, months, since){
+  const [cy,cw]=isoWeek(NOW); const out=[];
+  for(let w=1; w<=weeksInYear(y); w++){
+    if(y>cy || (y===cy && w>cw)) break;
+    if(!months.includes(weekMonth(y,w))) continue;
+    if(since){ const [sy,sw]=isoWeek(new Date(since)); if(y<sy || (y===sy && w<sw)) continue; }
+    out.push(w);
+  }
+  return out;
+}
+const monthsOf=(per)=> per==="mois"?[F.mois] : per==="trim"?[1,2,3].map(i=>(F.trim-1)*3+i) : per==="sem"?[1,2,3,4,5,6].map(i=>(F.sem-1)*6+i) : [1,2,3,4,5,6,7,8,9,10,11,12];
+const perLabel=(per)=> per==="mois"?`${MOIS[F.mois-1]} ${F.annee}` : per==="trim"?`${F.trim}${F.trim===1?"er":"e"} trimestre ${F.annee}` : per==="sem"?`${F.sem}${F.sem===1?"er":"nd"} semestre ${F.annee}` : `année ${F.annee}`;
+const perCode=(per)=> per==="mois"?`${F.annee}-${String(F.mois).padStart(2,"0")}` : per==="trim"?`${F.annee}-T${F.trim}` : `${F.annee}-S${F.sem}`;
+
+/* ---- territoire visible ---- */
+function visibleSites(){
+  return sites.filter(s=>{
+    if(F.site && s.id!==F.site) return false;
+    const p=siteProv(s); if(F.prov && (!p || p.id!==+F.prov)) return false;
+    if(F.reg && (!p || p.region_id!==+F.reg)) return false;
+    return true; });
+}
+function presIn(siteIds, months, extra){ const set=new Set(siteIds); return pres.filter(p=>set.has(p.site_id) && p.annee===F.annee && months.includes(p.mois) && (!extra||extra(p))); }
+function agg(list){ const a={n:list.length,f:0,h:0,t:0,valide:0,soumis:0,a_corriger:0}; list.forEach(p=>{ a.f+=p.total_f; a.h+=p.total_h; a.t+=p.total; a[p.statut]++; }); a.pf=a.t?Math.round(100*a.f/a.t):0; return a; }
+function completude(siteList, months){ let att=0, rec=0; siteList.filter(s=>s.actif).forEach(s=>{ const ws=expectedWeeks(F.annee, months, s.created_at); att+=ws.length; const got=new Set(pres.filter(p=>p.site_id===s.id&&p.annee===F.annee&&months.includes(p.mois)).map(p=>p.semaine)); rec+=ws.filter(w=>got.has(w)).length; }); return {att, rec, pct: att?Math.round(100*rec/att):0}; }
+/* anomalies d'une fiche */
+function anomalies(p){
+  const out=[]; if(p.total===0) out.push("Aucun pratiquant déclaré");
+  DAYS.forEach(([k,l])=>{ const d=p.jours&&p.jours[k]||{}; ["f","h"].forEach(sx=>{ const v=+d[sx]||0; if(v>300) out.push(`${l} : ${v} ${sx==="f"?"femmes":"hommes"} (valeur très élevée)`); }); });
+  const others=pres.filter(x=>x.site_id===p.site_id && x.id!==p.id && x.total>0).map(x=>x.total).sort((a,b)=>a-b);
+  if(others.length>=3){ const med=others[Math.floor(others.length/2)]; if(p.total>3*med) out.push(`Fréquentation inhabituelle : ${p.total} contre ${med} habituellement`); if(p.total>0 && p.total<med/3) out.push(`Fréquentation très basse : ${p.total} contre ${med} habituellement`); }
+  return out;
+}
+function terrLabel(){ if(niveau==="promoteur") return ""; if(niveau==="dpsje") return "Province "+(provById(meProv)?.nom||"?"); if(niveau==="drsje") return "Région "+(regById(meReg)?.nom||"?"); return "Burkina Faso"; }
+
+/* ---- chargement + cache hors ligne ---- */
+const kSpt=()=>"cs:spt:"+myId, kSptQ=()=>"cs:sptq:"+myId;
+const sptQueue=()=>(myId&&LS.get(kSptQ()))||[];
+async function loadTerritoires(){
+  if(REG.length) return;
+  const c=LS.get("cs:terr"); if(c){ REG=c.REG; PROV=c.PROV; }
+  if(!navigator.onLine) return;
+  const [r,p]=await Promise.all([db.from("regions").select("*").order("nom"), db.from("provinces").select("*").order("nom")]).catch(()=>[{},{}]);
+  if(r&&r.data&&p&&p.data){ REG=r.data; PROV=p.data; LS.set("cs:terr",{REG,PROV}); }
+}
+async function sptLoad(){
+  await loadTerritoires();
+  let ok=false;
+  if(navigator.onLine){
+    const y=F.annee;
+    const [a,b,c]=await Promise.all([
+      db.from("sites").select("*").order("nom").limit(10000),
+      db.from("presences").select("*").gte("annee",y-1).lte("annee",y+1).limit(50000),
+      db.from("transmissions").select("*").like("periode",y+"-%").limit(10000)]).then(x=>x,e=>[{error:e},{error:e},{error:e}]);
+    if(!a.error && !b.error && !c.error){ sites=a.data; pres=b.data; trans=c.data; ok=true; sptOffline=false; LS.set(kSpt(),{sites,pres,trans,at:Date.now()}); }
+  }
+  if(!ok){ const c=LS.get(kSpt()); if(c){ sites=c.sites; pres=c.pres; trans=c.trans; sptOffline=true; } }
+  // fiches en attente d'envoi, par-dessus
+  sptQueue().forEach(q=>{ const i=pres.findIndex(p=>p.site_id===q.row.site_id&&p.annee===q.row.annee&&p.semaine===q.row.semaine); const x={...q.row, _pending:true, statut:"soumis", ...totalsOf(q.row.jours)}; if(i>=0) pres[i]={...pres[i],...x}; else pres.push({id:"local-"+q.row.site_id+"-"+q.row.annee+"-"+q.row.semaine,...x}); });
+  sptLoaded=true;
+}
+function totalsOf(j){ let f=0,h=0; DAYS.forEach(([k])=>{ f+=Math.max(0,+(j[k]&&j[k].f)||0); h+=Math.max(0,+(j[k]&&j[k].h)||0); }); return {total_f:f,total_h:h,total:f+h}; }
+async function sptSync(){
+  const q=sptQueue(); if(!q.length || !navigator.onLine) return 0;
+  let sent=0; const rest=[];
+  for(const e of q){
+    const r=await db.from("presences").upsert(e.row,{onConflict:"site_id,annee,semaine"}).select("id").then(x=>x,er=>({error:er}));
+    if(r.error){ if(isNetErr(r.error)){ rest.push(e); continue; } rest.push({...e, err:r.error.message}); continue; }
+    sent++;
+  }
+  LS.set(kSptQ(),rest); return sent;
+}
+
+/* ---- navigation du module ---- */
+function sptTabs(){
+  if(niveau==="promoteur") return [["fiches","Mes fiches"],["sites","Mon site"],["rapport","Rapport mensuel"]];
+  if(niveau==="dpsje") return [["fiches","Contrôle des fiches"],["rapport","Rapport trimestriel"],["tb","Tableau de bord"],["sites","Sites"]];
+  if(niveau==="drsje") return [["tb","Tableau de bord"],["rapport","Rapport semestriel"],["fiches","Fiches"],["sites","Sites"]];
+  return [["tb","TB-NAT"],["trans","Transmissions"],["fiches","Fiches"],["sites","Sites"]];
+}
+function showSpt(){
+  ["v-list","v-dash","v-fiche","v-result","evalfilter-row","top-actions","footbar","v-comptes"].forEach(id=>$(id).hidden=true);
+  $("navrow").hidden=false; $("navrow").querySelector(".tabs").hidden=true; $("v-spt").hidden=false;
+  if(!sptTab) sptTab=sptTabs()[0][0];
+  renderSpt();
+}
+function sel(id,label,opts,val,attrs=""){ return `<label class="fld"><span class="l">${esc(label)}</span><select id="${id}" ${attrs}>${opts.map(([v,l])=>`<option value="${esc(v)}" ${String(v)===String(val)?"selected":""}>${esc(l)}</option>`).join("")}</select></label>`; }
+function filterBar(per, opt={}){
+  const parts=[];
+  const years=[F.annee-1,F.annee,F.annee+1].filter(y=>y<=NOW.getFullYear()+1);
+  parts.push(sel("f-annee","Année",years.map(y=>[y,y]),F.annee));
+  if(per==="mois"||per==="choix") parts.push(sel("f-mois","Mois",[["0","Tous les mois"],...MOIS.map((m,i)=>[i+1,m])],per==="choix"?F.moisSel||0:F.mois));
+  if(per==="trim") parts.push(sel("f-trim","Trimestre",[[1,"1er trimestre"],[2,"2e trimestre"],[3,"3e trimestre"],[4,"4e trimestre"]],F.trim));
+  if(per==="sem") parts.push(sel("f-sem","Semestre",[[1,"1er semestre"],[2,"2nd semestre"]],F.sem));
+  if(per==="tb") parts.push(sel("f-per","Période",[["annee","Année entière"],["sem","Semestre"],["trim","Trimestre"],["mois","Mois"]],F.per));
+  if(per==="tb" && F.per==="mois") parts.push(sel("f-mois","Mois",MOIS.map((m,i)=>[i+1,m]),F.mois));
+  if(per==="tb" && F.per==="trim") parts.push(sel("f-trim","Trimestre",[[1,"1er"],[2,"2e"],[3,"3e"],[4,"4e"]],F.trim));
+  if(per==="tb" && F.per==="sem") parts.push(sel("f-sem","Semestre",[[1,"1er"],[2,"2nd"]],F.sem));
+  if(!opt.noTerr){
+    if(canSeeAll()) parts.push(sel("f-reg","Région",[["","Toutes les régions"],...REG.map(r=>[r.id,r.nom])],F.reg));
+    if(canSeeAll()||niveau==="drsje"){ const pl=PROV.filter(p=>(!F.reg||p.region_id===+F.reg) && (niveau!=="drsje"||p.region_id===meReg)); parts.push(sel("f-prov","Province",[["","Toutes les provinces"],...pl.map(p=>[p.id,p.nom])],F.prov)); }
+    if(opt.site!==false){ const sl=sites.filter(s=>{ const p=siteProv(s); return (!F.prov||(p&&p.id===+F.prov)) && (!F.reg||(p&&p.region_id===+F.reg)); }); if(sl.length>1||niveau!=="promoteur") parts.push(sel("f-site","Site",[["","Tous les sites"],...sl.map(s=>[s.id,s.nom])],F.site)); }
+  }
+  if(opt.statut) parts.push(sel("f-statut","Statut",[["","Tous"],["soumis","Soumises"],["a_corriger","À corriger"],["valide","Validées"],["anomalie","Avec anomalie"]],F.statut));
+  return `<div class="filters">${parts.join("")}</div>`;
+}
+function bindFilters(){
+  const on=(id,fn)=>{ const e=$(id); if(e) e.onchange=()=>{ fn(e.value); renderSpt(); }; };
+  on("f-annee",v=>{ const y=+v; if(Math.abs(y-F.annee)>=1 && navigator.onLine){ F.annee=y; sptLoad().then(renderSpt); } else F.annee=y; });
+  on("f-mois",v=>{ if(sptTab==="fiches") F.moisSel=+v; else F.mois=+v; });
+  on("f-trim",v=>F.trim=+v); on("f-sem",v=>F.sem=+v); on("f-per",v=>F.per=v);
+  on("f-reg",v=>{ F.reg=v; F.prov=""; F.site=""; }); on("f-prov",v=>{ F.prov=v; F.site=""; }); on("f-site",v=>F.site=v); on("f-statut",v=>F.statut=v);
+}
+function renderSpt(){
+  const V=$("v-spt");
+  const head=`<div class="subnav" role="tablist">${sptTabs().map(([k,l])=>`<button data-st="${k}" aria-selected="${sptTab===k&&!sptView}">${esc(l)}</button>`).join("")}</div>`
+    + (sptOffline?`<p class="msg">Hors ligne : données enregistrées sur cet appareil. Vos fiches seront envoyées à la reconnexion.</p>`:"")
+    + (sptQueue().length?`<p class="msg pend">${sptQueue().length} fiche${sptQueue().length>1?"s":""} en attente d'envoi.</p>`:"");
+  let body="";
+  if(sptView==="pres") body=presForm();
+  else if(sptView==="site") body=siteForm();
+  else if(sptTab==="fiches") body=tabFiches();
+  else if(sptTab==="sites") body=tabSites();
+  else if(sptTab==="rapport") body = niveau==="promoteur"?tabRMens(): niveau==="dpsje"?tabRTrim(): niveau==="drsje"?tabRSem(): tabRSem();
+  else if(sptTab==="tb") body=tabTB();
+  else if(sptTab==="trans") body=tabTrans();
+  V.innerHTML=head+body;
+  V.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ sptTab=b.dataset.st; sptView=null; renderSpt(); window.scrollTo(0,0); });
+  bindFilters(); bindSpt();
+}
+
+/* ---- onglet : fiches hebdomadaires ---- */
+function tabFiches(){
+  const months = F.moisSel ? [F.moisSel] : monthsOf("annee");
+  let list=presIn(visibleSites().map(s=>s.id), months);
+  if(F.statut==="anomalie") list=list.filter(p=>anomalies(p).length); else if(F.statut) list=list.filter(p=>p.statut===F.statut);
+  list.sort((a,b)=>b.annee-a.annee||b.semaine-a.semaine);
+  const canNew = niveau==="promoteur" ? sites.some(s=>s.promoteur_id===myId) : isCtrl();
+  const nb={soumis:0,a_corriger:0,valide:0}; list.forEach(p=>nb[p.statut]++);
+  const intro = niveau==="promoteur" ? (sites.some(s=>s.promoteur_id===myId) ? "" : `<div class="panel"><h3>Commencez par enregistrer votre site</h3><p class="cap">La fiche hebdomadaire est rattachée à votre site de pratique. Ouvrez l'onglet « Mon site » et décrivez-le une fois pour toutes.</p><div class="row-actions"><button class="btn primary" data-act="newsite">Enregistrer mon site</button></div></div>`)
+    : niveau==="dpsje" ? `<p class="cap" style="margin:0">À contrôler : <b>${nb.soumis}</b> soumise${nb.soumis>1?"s":""} · ${nb.a_corriger} à corriger · ${nb.valide} validée${nb.valide>1?"s":""}.</p>` : "";
+  return `${intro}<div class="row-actions">${canNew?`<button class="btn primary" data-act="newpres">+ Nouvelle fiche de la semaine</button>`:""}<button class="btn" data-act="csvpres">Exporter (CSV)</button><span class="msg" id="spt-msg"></span></div>
+  ${filterBar("choix",{statut:true, site: niveau!=="promoteur" || sites.length>1})}
+  <div class="plist">${list.length?list.map(p=>{ const s=siteById(p.site_id), an=anomalies(p);
+    return `<button class="prow2" data-pres="${esc(p.id)}"><span class="t">${esc(s?.nom||"Site")} · S${p.semaine}</span><span class="s">${esc(weekLabel(p.annee,p.semaine).replace(/^Semaine \d+ · /,""))} · ${esc(siteProv(s)?.nom||"")}${an.length?` · <span style="color:var(--danger)">⚠ ${an.length} anomalie${an.length>1?"s":""}</span>`:""}${p._pending?` · <span class="pend">à envoyer</span>`:""}</span>
+      <span class="r"><span class="st ${p.statut}">${STATUT[p.statut]}</span><span class="s">F ${p.total_f} · H ${p.total_h} · <b>${p.total}</b></span></span></button>`; }).join("")
+    :`<p class="empty">Aucune fiche pour cette sélection.${canNew?" Touchez « Nouvelle fiche de la semaine » pour saisir la fréquentation.":""}</p>`}</div>`;
+}
+function presForm(){
+  const p=sptEdit, s=siteById(p.site_id), mine = s && s.promoteur_id===myId;
+  const editable = (mine && p.statut!=="valide") || isCtrl() || !p.id;
+  const mySites = niveau==="promoteur" ? sites.filter(x=>x.promoteur_id===myId) : visibleSites();
+  const wk=[]; for(let w=1; w<=weeksInYear(p.annee); w++) wk.push([w, weekLabel(p.annee,w)]);
+  const dis = editable?"":"disabled";
+  const t=totalsOf(p.jours||{});
+  const an=p.id?anomalies({...p,...t}):[];
+  return `<div class="row-actions"><button class="btn" data-act="back">← Retour aux fiches</button>${p.id?`<span class="st ${p.statut}">${STATUT[p.statut]}</span>`:""}</div>
+  <div class="panel"><h3>Fiche hebdomadaire de fréquentation</h3>
+    ${s?`<p class="cap">${esc(s.promoteur_nom||"")}${s.profession?" · "+esc(s.profession):""}${s.telephone?" · "+esc(s.telephone):""} — ${esc(s.localite||"")} · ${esc(siteProv(s)?.nom||"")} · ${esc(s.activites||"")}</p>`:""}
+    <div class="filters">
+      ${sel("pf-site","Site de pratique",mySites.map(x=>[x.id,x.nom]),p.site_id,(p.id||!editable)?"disabled":"")}
+      ${sel("pf-annee","Année",[[NOW.getFullYear()-1,NOW.getFullYear()-1],[NOW.getFullYear(),NOW.getFullYear()]],p.annee,(p.id||!editable)?"disabled":"")}
+      ${sel("pf-sem","Numéro de semaine",wk,p.semaine,(p.id||!editable)?"disabled":"")}
+      ${sel("pf-mois","Mois",MOIS.map((m,i)=>[i+1,m]),p.mois,dis)}
+    </div>
+    <p class="cap">Nombre moyen de pratiquants par sexe selon le jour de la semaine.</p>
+    <div class="tscroll"><table class="dt grid7"><thead><tr><th>Jour</th><th>Femmes</th><th>Hommes</th><th>Total</th></tr></thead><tbody>
+      ${DAYS.map(([k,l])=>{ const d=(p.jours||{})[k]||{}; const tt=(+d.f||0)+(+d.h||0); return `<tr><td class="l">${l}</td><td><input inputmode="numeric" data-day="${k}" data-sx="f" value="${d.f??""}" ${dis}></td><td><input inputmode="numeric" data-day="${k}" data-sx="h" value="${d.h??""}" ${dis}></td><td id="tt-${k}">${tt||""}</td></tr>`; }).join("")}
+      <tr><td class="l"><b>Total de la semaine</b></td><td id="tt-f"><b>${t.total_f}</b></td><td id="tt-h"><b>${t.total_h}</b></td><td id="tt-t"><b>${t.total}</b></td></tr>
+    </tbody></table></div>
+    <label class="fld"><span class="l">Observations</span><textarea id="pf-obs" ${dis}>${esc(p.observations||"")}</textarea></label>
+    ${an.length?`<div class="warn"><b>Points à vérifier :</b><ul class="warnlist">${an.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></div>`:""}
+    ${p.commentaire?`<div class="warn"><b>Commentaire du contrôle :</b> ${esc(p.commentaire)}</div>`:""}
+    <div class="row-actions">${editable?`<button class="btn primary" data-act="savepres">${p.id?"Enregistrer les modifications":"Envoyer la fiche"}</button>`:""}
+      ${p.id && (isCtrl() || (mine && p.statut!=="valide"))?`<button class="btn danger" data-act="delpres">Supprimer</button>`:""}<span class="msg" id="pf-msg"></span></div>
+    ${!editable && mine?`<p class="cap">Fiche validée par la DPSJE : elle ne peut plus être modifiée. Contactez votre DPSJE en cas d'erreur.</p>`:""}
+  </div>
+  ${p.id && isCtrl()?`<div class="panel"><h3>Contrôle qualité</h3>
+    <label class="fld"><span class="l">Commentaire (obligatoire pour « À corriger »)</span><textarea id="pf-com">${esc(p.commentaire||"")}</textarea></label>
+    <div class="row-actions"><button class="btn primary" data-act="valid">Valider la fiche</button><button class="btn" data-act="corr">Renvoyer pour correction</button><span class="msg" id="pc-msg"></span></div></div>`:""}`;
+}
+function readPresForm(){
+  const p=sptEdit; const j={};
+  document.querySelectorAll("[data-day]").forEach(i=>{ const v=i.value.trim(); (j[i.dataset.day] ||= {})[i.dataset.sx] = v===""?"":String(Math.max(0,parseInt(v,10)||0)); });
+  const g=id=>$(id)?.value;
+  return { site_id: p.id?p.site_id:g("pf-site"), annee: p.id?p.annee:+g("pf-annee"), semaine: p.id?p.semaine:+g("pf-sem"), mois:+g("pf-mois"), jours:j, observations:$("pf-obs").value.trim()||null };
+}
+async function savePres(){
+  const m=$("pf-msg"); const row=readPresForm();
+  if(!row.site_id){ m.className="msg err"; m.textContent="Choisissez le site."; return; }
+  const t=totalsOf(row.jours); if(!t.total && !confirmZero){ confirmZero=true; m.className="msg err"; m.textContent="Aucun pratiquant saisi. Touchez à nouveau pour envoyer une fiche à zéro."; return; }
+  confirmZero=false; m.className="msg"; m.textContent="Envoi…";
+  if(!navigator.onLine){
+    const q=sptQueue().filter(e=>!(e.row.site_id===row.site_id&&e.row.annee===row.annee&&e.row.semaine===row.semaine)); q.push({row}); LS.set(kSptQ(),q);
+    await sptLoad(); m.className="msg ok"; m.textContent="Fiche enregistrée sur cet appareil : elle sera envoyée au retour de la connexion."; sptView=null; renderSpt(); return;
+  }
+  const r = sptEdit.id ? await db.from("presences").update(row).eq("id",sptEdit.id).select("*") : await db.from("presences").insert(row).select("*");
+  if(r.error){ m.className="msg err"; m.textContent = r.error.code==="23505" ? "Une fiche existe déjà pour ce site et cette semaine : ouvrez-la dans la liste pour la compléter." : /validée/.test(r.error.message) ? "Fiche déjà validée : seule la DPSJE peut la modifier." : isNetErr(r.error) ? "Pas de connexion : réessayez." : "Envoi impossible : "+r.error.message; return; }
+  if(!r.data||!r.data.length){ m.className="msg err"; m.textContent="Envoi refusé : vérifiez que votre compte est activé pour ce site."; return; }
+  await sptLoad(); sptEdit=pres.find(x=>x.id===r.data[0].id)||r.data[0]; sptView="pres"; renderSpt(); const m2=$("pf-msg"); if(m2){ m2.className="msg ok"; m2.textContent= niveau==="promoteur" ? "Fiche envoyée à la DPSJE ✓" : "Fiche enregistrée ✓"; }
+}
+let confirmZero=false, confirmDel=false;
+async function ctrlPres(statut){
+  const m=$("pc-msg"); const com=$("pf-com").value.trim();
+  if(statut==="a_corriger" && !com){ m.className="msg err"; m.textContent="Indiquez au promoteur ce qu'il doit corriger."; return; }
+  if(!navigator.onLine){ m.className="msg err"; m.textContent="Le contrôle demande une connexion."; return; }
+  const r=await db.from("presences").update({statut, commentaire:com||null}).eq("id",sptEdit.id).select("*");
+  if(r.error||!r.data?.length){ m.className="msg err"; m.textContent="Modification impossible."; return; }
+  await sptLoad(); sptEdit=pres.find(x=>x.id===sptEdit.id); renderSpt(); const m2=$("pc-msg"); if(m2){ m2.className="msg ok"; m2.textContent= statut==="valide"?"Fiche validée ✓":"Fiche renvoyée au promoteur ✓"; }
+}
+
+/* ---- onglet : sites (F-SITE) ---- */
+function tabSites(){
+  const sl=visibleSites(); const canNew = niveau==="promoteur" || isCtrl();
+  return `<div class="row-actions">${canNew?`<button class="btn primary" data-act="newsite">+ Ajouter un site</button>`:""}<span class="cap">${sl.length} site${sl.length>1?"s":""}</span></div>
+  ${niveau==="promoteur"?"":filterBar("none",{site:false})}
+  <div class="plist">${sl.length?sl.map(s=>{ const n=pres.filter(p=>p.site_id===s.id&&p.annee===F.annee); const last=n.sort((a,b)=>b.semaine-a.semaine)[0];
+    return `<button class="prow2" data-site="${esc(s.id)}"><span class="t">${esc(s.nom)}${s.actif?"":" · inactif"}</span><span class="s">${esc(s.localite||"")} · ${esc(siteProv(s)?.nom||"")} (${esc(siteReg(s)?.nom||"")}) · ${esc(s.activites||"")}</span>
+      <span class="r"><span class="s">${esc(s.promoteur_nom||"")}</span><span class="s">${n.length} fiche${n.length>1?"s":""} en ${F.annee}${last?" · dernière S"+last.semaine:""}</span></span></button>`; }).join("")
+    :`<p class="empty">Aucun site enregistré.${canNew?" Touchez « Ajouter un site ».":""}</p>`}</div>`;
+}
+function siteForm(){
+  const s=sptEdit; const editable = !s.id || s.promoteur_id===myId || isCtrl();
+  const dis=editable?"":"disabled";
+  const provOpts = niveau==="dpsje" ? PROV.filter(p=>p.id===meProv) : niveau==="drsje" ? PROV.filter(p=>p.region_id===meReg) : PROV;
+  const inp=(id,l,v,t="text")=>`<label class="fld"><span class="l">${l}</span><input id="${id}" type="${t}" value="${esc(v??"")}" ${dis}></label>`;
+  return `<div class="row-actions"><button class="btn" data-act="back">← Retour</button></div>
+  <div class="panel"><h3>Fiche du site de pratique</h3><p class="cap">Ces informations s'affichent en tête de chaque fiche hebdomadaire.</p>
+  <div class="body" style="padding:0">
+    ${inp("sf-nom","Site de pratique *",s.nom)}
+    ${sel("sf-prov","Province *",[["","Choisir…"],...provOpts.map(p=>[p.id,`${p.nom} (${regById(p.region_id)?.nom||""})`])],s.province_id||"",dis)}
+    ${inp("sf-loc","Localité",s.localite)}
+    ${inp("sf-act","Activité pratiquée",s.activites)}
+    <div class="subh">Promoteur</div>
+    ${inp("sf-pnom","Nom et prénom",s.promoteur_nom)}
+    ${inp("sf-prof","Profession",s.profession)}
+    ${sel("sf-sexe","Sexe",[["",""],["F","Femme"],["H","Homme"]],s.sexe||"",dis)}
+    ${inp("sf-age","Âge",s.age,"number")}
+    ${inp("sf-tel","Téléphone",s.telephone,"tel")}
+    <label class="fld" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="sf-actif" ${s.actif!==false?"checked":""} ${dis} style="width:auto"> Site en activité</label>
+  </div>
+  <div class="row-actions">${editable?`<button class="btn primary" data-act="savesite">Enregistrer le site</button>`:""}${s.id&&isCtrl()?`<button class="btn danger" data-act="delsite">Supprimer le site</button>`:""}<span class="msg" id="sf-msg"></span></div></div>`;
+}
+async function saveSite(){
+  const m=$("sf-msg"); const g=id=>$(id).value.trim();
+  const row={ nom:g("sf-nom"), province_id:+g("sf-prov")||null, localite:g("sf-loc")||null, activites:g("sf-act")||null, promoteur_nom:g("sf-pnom")||null, profession:g("sf-prof")||null, sexe:g("sf-sexe")||null, age:+g("sf-age")||null, telephone:g("sf-tel")||null, actif:$("sf-actif").checked };
+  if(!row.nom||!row.province_id){ m.className="msg err"; m.textContent="Indiquez le nom du site et sa province."; return; }
+  if(!navigator.onLine){ m.className="msg err"; m.textContent="L'enregistrement d'un site demande une connexion."; return; }
+  const r = sptEdit.id ? await db.from("sites").update(row).eq("id",sptEdit.id).select("*") : await db.from("sites").insert(row).select("*");
+  if(r.error||!r.data?.length){ m.className="msg err"; m.textContent="Enregistrement impossible"+(r.error?" : "+r.error.message:" : vérifiez la province (elle doit être dans votre territoire)."); return; }
+  await sptLoad(); sptView=null; sptTab = niveau==="promoteur"?"fiches":"sites"; renderSpt(); const mm=$("spt-msg"); if(mm){ mm.className="msg ok"; mm.textContent="Site enregistré ✓"; }
+}
+
+/* ---- rapports ---- */
+function siteTable(siteList, months, withMens){
+  return `<div class="tscroll"><table class="dt"><thead><tr><th>Site</th><th>Fiches reçues</th><th>Validées</th><th>Femmes</th><th>Hommes</th><th>Total</th>${withMens?"<th>R-MENS</th>":""}</tr></thead><tbody>${siteList.map(s=>{
+    const L=presIn([s.id],months), a=agg(L), att=expectedWeeks(F.annee,months,s.created_at).length;
+    const mens = withMens ? months.filter(mo=>trans.some(t=>t.type==="R-MENS"&&t.site_id===s.id&&t.periode===`${F.annee}-${String(mo).padStart(2,"0")}`)).length : 0;
+    return `<tr><td>${esc(s.nom)}</td><td>${a.n} / ${att}</td><td>${a.valide}</td><td>${a.f}</td><td>${a.h}</td><td><b>${a.t}</b></td>${withMens?`<td>${mens} / ${months.length}</td>`:""}</tr>`; }).join("")||`<tr><td colspan="7">Aucun site.</td></tr>`}</tbody></table></div>`;
+}
+function kpis(siteList, months){
+  const L=presIn(siteList.map(s=>s.id),months), a=agg(L), c=completude(siteList,months);
+  return `<div class="kpis"><div class="kpi"><span class="v">${siteList.filter(s=>s.actif).length}</span><span class="k">Sites actifs</span></div>
+   <div class="kpi"><span class="v">${a.n}</span><span class="k">Fiches reçues (${c.pct} % des ${c.att} attendues)</span></div>
+   <div class="kpi"><span class="v">${a.t.toLocaleString("fr-FR")}</span><span class="k">Présences déclarées</span></div>
+   <div class="kpi"><span class="v">${a.pf} %</span><span class="k">Part de femmes</span></div>
+   <div class="kpi${a.soumis+a.a_corriger?" alert":""}"><span class="v">${a.soumis+a.a_corriger}</span><span class="k">Fiches non validées</span></div></div>`;
+}
+function transBox(t, label, canDo, act){
+  return `<div class="panel"><h3>${esc(label)}</h3>${t?`<p class="okline">Transmis le ${new Date(t.transmis_le).toLocaleDateString("fr-FR")}${t.commentaire?" · « "+esc(t.commentaire)+" »":""}. Vous pouvez le transmettre à nouveau pour le mettre à jour.</p>`:`<p class="cap">Pas encore transmis.</p>`}
+   ${canDo?`<label class="fld"><span class="l">Commentaire / observations du rapport</span><textarea id="tr-com">${esc(t?.commentaire||"")}</textarea></label>
+   <div class="row-actions"><button class="btn primary" data-act="${act}">${t?"Transmettre à nouveau":"Transmettre"}</button><button class="btn" data-act="csvrap">Exporter le rapport (CSV)</button><span class="msg" id="tr-msg"></span></div>`:""}</div>`;
+}
+async function transmit(row){
+  const m=$("tr-msg"); if(!navigator.onLine){ m.className="msg err"; m.textContent="La transmission demande une connexion."; return; }
+  row.commentaire=$("tr-com").value.trim()||null; row.transmis_le=new Date().toISOString();
+  const r=await db.from("transmissions").upsert(row,{onConflict:"type,periode,site_id,province_id,region_id"}).select("*");
+  if(r.error||!r.data?.length){ m.className="msg err"; m.textContent="Transmission impossible"+(r.error?" : "+r.error.message:""); return; }
+  await sptLoad(); renderSpt(); const m2=$("tr-msg"); if(m2){ m2.className="msg ok"; m2.textContent="Rapport transmis ✓"; }
+}
+function tabRMens(){
+  const my=sites.filter(s=>s.promoteur_id===myId); if(!F.site && my.length) F.site=my[0].id;
+  const s=siteById(F.site); if(!s) return `<p class="empty">Enregistrez d'abord votre site dans l'onglet « Mon site ».</p>`;
+  const months=[F.mois], L=presIn([s.id],months).sort((a,b)=>a.semaine-b.semaine), a=agg(L), ws=expectedWeeks(F.annee,months,s.created_at);
+  const got=new Map(L.map(p=>[p.semaine,p])); const t=trans.find(x=>x.type==="R-MENS"&&x.site_id===s.id&&x.periode===perCode("mois"));
+  return `${filterBar("mois",{noTerr:true})}${my.length>1?sel("f-site","Site",my.map(x=>[x.id,x.nom]),F.site):""}
+  <div class="panel"><h3>R-MENS · ${esc(s.nom)} · ${perLabel("mois")}</h3>
+   <div class="kpis"><div class="kpi"><span class="v">${L.length} / ${ws.length}</span><span class="k">Semaines déclarées</span></div><div class="kpi"><span class="v">${a.t}</span><span class="k">Présences (F ${a.f} · H ${a.h})</span></div><div class="kpi"><span class="v">${L.length?Math.round(a.t/L.length):0}</span><span class="k">Moyenne par semaine</span></div><div class="kpi"><span class="v">${a.pf} %</span><span class="k">Part de femmes</span></div></div>
+   <div class="tscroll"><table class="dt"><thead><tr><th>Semaine</th><th>Statut</th><th>Femmes</th><th>Hommes</th><th>Total</th></tr></thead><tbody>${ws.map(w=>{ const p=got.get(w); return `<tr><td class="l">${esc(weekLabel(F.annee,w))}</td><td>${p?`<span class="st ${p.statut}">${STATUT[p.statut]}</span>`:`<span class="st manque">Manquante</span>`}</td><td>${p?p.total_f:"–"}</td><td>${p?p.total_h:"–"}</td><td>${p?`<b>${p.total}</b>`:"–"}</td></tr>`; }).join("")||`<tr><td colspan="5">Aucune semaine écoulée dans ce mois.</td></tr>`}</tbody></table></div>
+   ${ws.length>L.length?`<p class="msg err">${ws.length-L.length} semaine${ws.length-L.length>1?"s":""} sans fiche : saisissez-les avant de transmettre.</p>`:""}</div>
+  ${transBox(t,"Transmission à la DPSJE",true,"tr-mens")}`;
+}
+function tabRTrim(){
+  const pid = niveau==="dpsje"?meProv:(+F.prov||null); const months=monthsOf("trim");
+  if(!pid) return `${filterBar("trim")}<p class="empty">Choisissez une province.</p>`;
+  const sl=sites.filter(s=>s.province_id===pid), L=presIn(sl.map(s=>s.id),months);
+  const anos=L.map(p=>[p,anomalies(p)]).filter(x=>x[1].length);
+  const manq=sl.filter(s=>s.actif).map(s=>{ const ws=expectedWeeks(F.annee,months,s.created_at); const got=new Set(L.filter(p=>p.site_id===s.id).map(p=>p.semaine)); return [s,ws.filter(w=>!got.has(w))]; }).filter(x=>x[1].length);
+  const t=trans.find(x=>x.type==="R-TRIM"&&x.province_id===pid&&x.periode===perCode("trim"));
+  return `${filterBar("trim",{site:false})}
+  <div class="panel"><h3>R-TRIM · Province ${esc(provById(pid)?.nom||"")} · ${perLabel("trim")}</h3>${kpis(sl,months)}${siteTable(sl,months,true)}</div>
+  <div class="panel"><h3>Signalement des anomalies</h3>${anos.length||manq.length?`<ul class="warnlist">${manq.map(([s,w])=>`<li><b>${esc(s.nom)}</b> : ${w.length} semaine${w.length>1?"s":""} sans fiche (S${w.join(", S")})</li>`).join("")}${anos.map(([p,a])=>`<li><b>${esc(siteById(p.site_id)?.nom||"")} S${p.semaine}</b> : ${esc(a.join(" ; "))}</li>`).join("")}</ul>`:`<p class="okline">Aucune anomalie détectée.</p>`}
+   ${L.some(p=>p.statut!=="valide")?`<p class="msg err">${L.filter(p=>p.statut!=="valide").length} fiche(s) pas encore validée(s) : contrôlez-les dans l'onglet « Contrôle des fiches ».</p>`:""}</div>
+  ${transBox(t,"Transmission à la DRSJE",isAdmin||niveau==="dpsje","tr-trim")}`;
+}
+function tabRSem(){
+  const rid = niveau==="drsje"?meReg:(+F.reg||null); const months=monthsOf("sem");
+  if(!rid) return `${filterBar("sem",{site:false})}<p class="empty">Choisissez une région.</p>`;
+  const pl=PROV.filter(p=>p.region_id===rid), trims=F.sem===1?[1,2]:[3,4];
+  const rows=pl.map(p=>{ const sl=sites.filter(s=>s.province_id===p.id), L=presIn(sl.map(s=>s.id),months), a=agg(L), c=completude(sl,months);
+    const tt=trims.filter(q=>trans.some(t=>t.type==="R-TRIM"&&t.province_id===p.id&&t.periode===`${F.annee}-T${q}`)).length; return {p,sl,a,c,tt}; });
+  const alerts=[];
+  rows.forEach(r=>{ if(!r.sl.length) alerts.push(`<b>${esc(r.p.nom)}</b> : aucun site enregistré`); else { if(r.tt<trims.length) alerts.push(`<b>${esc(r.p.nom)}</b> : ${trims.length-r.tt} rapport${trims.length-r.tt>1?"s":""} trimestriel${trims.length-r.tt>1?"s":""} non transmis`); if(r.c.att && r.c.pct<50) alerts.push(`<b>${esc(r.p.nom)}</b> : complétude faible (${r.c.pct} %)`); if(r.a.soumis+r.a.a_corriger) alerts.push(`<b>${esc(r.p.nom)}</b> : ${r.a.soumis+r.a.a_corriger} fiche(s) non validée(s)`); } });
+  const tot=agg(presIn(sites.filter(s=>pl.some(p=>p.id===s.province_id)).map(s=>s.id),months));
+  const t=trans.find(x=>x.type==="R-SEM"&&x.region_id===rid&&x.periode===perCode("sem"));
+  const max=Math.max(1,...rows.map(r=>r.a.t));
+  return `${filterBar("sem",{site:false})}
+  <div class="panel"><h3>Rapport semestriel · Région ${esc(regById(rid)?.nom||"")} · ${perLabel("sem")}</h3>${kpis(sites.filter(s=>pl.some(p=>p.id===s.province_id)),months)}
+   <div class="tscroll"><table class="dt"><thead><tr><th>Province</th><th>Sites</th><th>Complétude</th><th>Validées</th><th>Femmes</th><th>Hommes</th><th>Total</th><th>R-TRIM</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.p.nom)}</td><td>${r.sl.length}</td><td>${r.c.att?r.c.pct+" %":"–"}</td><td>${r.a.valide}/${r.a.n}</td><td>${r.a.f}</td><td>${r.a.h}</td><td><b>${r.a.t}</b></td><td>${r.tt} / ${trims.length}</td></tr>`).join("")}<tr><td><b>Région</b></td><td>${rows.reduce((s,r)=>s+r.sl.length,0)}</td><td></td><td>${tot.valide}/${tot.n}</td><td>${tot.f}</td><td>${tot.h}</td><td><b>${tot.t}</b></td><td></td></tr></tbody></table></div></div>
+  <div class="panel"><h3>Présences par province</h3><div class="bars">${rows.map(r=>`<div class="bar" title="${esc(r.p.nom)} : ${r.a.t}"><span class="lab">${esc(r.p.nom)}</span><span class="track"><span class="fillb" style="width:${Math.round(100*r.a.t/max)}%"></span></span><span class="num">${r.a.t}</span></div>`).join("")}</div></div>
+  <div class="panel"><h3>Contrôle de cohérence</h3>${alerts.length?`<ul class="warnlist">${alerts.map(a=>`<li>${a}</li>`).join("")}</ul>`:`<p class="okline">Aucune incohérence détectée.</p>`}</div>
+  ${transBox(t,"Transmission au SSEC",isAdmin||niveau==="drsje","tr-sem")}`;
+}
+
+/* ---- tableaux de bord ---- */
+function tabTB(){
+  const months=monthsOf(F.per), sl=visibleSites(), L=presIn(sl.map(s=>s.id),months);
+  const byMonth=months.map(mo=>{ const a=agg(L.filter(p=>p.mois===mo)); return [mo,a]; });
+  const maxM=Math.max(1,...byMonth.map(([,a])=>a.t));
+  let unitRows, unitLabel;
+  if(!F.reg && canSeeAll()){ unitLabel="Région"; unitRows=REG.map(r=>[r.nom, sl.filter(s=>siteProv(s)?.region_id===r.id)]); }
+  else if(!F.prov && (canSeeAll()||niveau==="drsje")){ const rid=+F.reg||meReg; unitLabel="Province"; unitRows=PROV.filter(p=>p.region_id===rid).map(p=>[p.nom, sl.filter(s=>s.province_id===p.id)]); }
+  else { unitLabel="Site"; unitRows=sl.map(s=>[s.nom,[s]]); }
+  return `${filterBar("tb",{site:niveau!=="promoteur"})}
+  <p class="cap" style="margin:0">${esc(terrLabel())} · ${perLabel(F.per)}${F.reg?" · "+esc(regById(F.reg)?.nom||""):""}${F.prov?" · "+esc(provById(F.prov)?.nom||""):""}</p>
+  ${kpis(sl,months)}
+  <div class="panel"><h3>Présences par mois</h3><div class="legend"><span><i class="seg2"></i>Femmes</span><span><i class="seg3"></i>Hommes</span></div>
+   <div class="bars">${byMonth.map(([mo,a])=>`<div class="bar"><span class="lab">${MOIS[mo-1]}</span><span class="track" style="width:${Math.round(100*a.t/maxM)}%">${a.f?`<span class="seg2" style="width:${Math.round(100*a.f/(a.t||1))}%;height:100%" title="Femmes : ${a.f}"></span>`:""}${a.h?`<span class="seg3" style="width:${Math.round(100*a.h/(a.t||1))}%;height:100%" title="Hommes : ${a.h}"></span>`:""}</span><span class="num">${a.t}</span></div>`).join("")}</div></div>
+  <div class="panel"><h3>Par ${unitLabel.toLowerCase()}</h3><div class="tscroll"><table class="dt"><thead><tr><th>${unitLabel}</th><th>Sites</th><th>Complétude</th><th>Femmes</th><th>Hommes</th><th>Total</th><th>% femmes</th></tr></thead><tbody>${unitRows.map(([nom,ss])=>{ const a=agg(presIn(ss.map(s=>s.id),months)), c=completude(ss,months); return `<tr><td>${esc(nom)}</td><td>${ss.length}</td><td>${c.att?c.pct+" %":"–"}</td><td>${a.f}</td><td>${a.h}</td><td><b>${a.t}</b></td><td>${a.t?a.pf+" %":"–"}</td></tr>`; }).join("")}</tbody></table></div></div>`;
+}
+function tabTrans(){
+  const rowsR=REG.map(r=>{ const cells=[1,2].map(sm=>trans.find(t=>t.type==="R-SEM"&&t.region_id===r.id&&t.periode===`${F.annee}-S${sm}`)); return [r,cells]; });
+  const pl=PROV.filter(p=>!F.reg||p.region_id===+F.reg);
+  const cell=t=>t?`<span class="st valide" title="${esc(t.commentaire||"")}">${new Date(t.transmis_le).toLocaleDateString("fr-FR")}</span>`:`<span class="st manque">—</span>`;
+  return `<div class="row-actions"><button class="btn primary" data-act="csvbase">Exporter la base centrale (CSV)</button><span class="msg" id="spt-msg"></span></div>
+  ${filterBar("none",{site:false})}
+  <div class="panel"><h3>Rapports semestriels des régions (DRSJE)</h3><div class="tscroll"><table class="dt"><thead><tr><th>Région</th><th>1er semestre</th><th>2nd semestre</th></tr></thead><tbody>${rowsR.filter(([r])=>!F.reg||r.id===+F.reg).map(([r,c])=>`<tr><td>${esc(r.nom)}</td><td>${cell(c[0])}</td><td>${cell(c[1])}</td></tr>`).join("")}</tbody></table></div></div>
+  <div class="panel"><h3>Rapports trimestriels des provinces (DPSJE)</h3><div class="tscroll"><table class="dt"><thead><tr><th>Province</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th></tr></thead><tbody>${pl.map(p=>`<tr><td>${esc(p.nom)} <span class="n">(${esc(regById(p.region_id)?.nom||"")})</span></td>${[1,2,3,4].map(q=>`<td>${cell(trans.find(t=>t.type==="R-TRIM"&&t.province_id===p.id&&t.periode===`${F.annee}-T${q}`))}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+}
+
+/* ---- exports CSV ---- */
+function csvDownload(name, cols, rows){
+  const e=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  saveFile(name, new Blob(["﻿"+[cols.join(";"),...rows.map(r=>r.map(e).join(";"))].join("\r\n")],{type:"text/csv;charset=utf-8"}));
+}
+function presRows(list){ return list.map(p=>{ const s=siteById(p.site_id), pv=siteProv(s), rg=siteReg(s); return [rg?.nom,pv?.nom,s?.nom,s?.localite,s?.activites,s?.promoteur_nom,p.annee,p.semaine,MOIS[p.mois-1],...DAYS.flatMap(([k])=>[p.jours?.[k]?.f??"",p.jours?.[k]?.h??""]),p.total_f,p.total_h,p.total,STATUT[p.statut],p.observations,p.commentaire]; }); }
+const presCols=["Région","Province","Site","Localité","Activité","Promoteur","Année","Semaine","Mois",...DAYS.flatMap(([,l])=>[l+" F",l+" H"]),"Total F","Total H","Total","Statut","Observations","Commentaire contrôle"];
+
+/* ---- actions ---- */
+function bindSpt(){
+  const V=$("v-spt"); const a=(n,fn)=>V.querySelectorAll(`[data-act="${n}"]`).forEach(b=>b.onclick=fn);
+  a("back",()=>{ sptView=null; renderSpt(); });
+  a("newpres",()=>{ const my=niveau==="promoteur"?sites.filter(s=>s.promoteur_id===myId):visibleSites(); const [y,w]=isoWeek(NOW); sptEdit={site_id:(F.site&&siteById(F.site)?F.site:my[0]?.id), annee:y, semaine:w, mois:weekMonth(y,w), jours:{}, statut:"soumis"}; sptView="pres"; confirmZero=false; renderSpt(); window.scrollTo(0,0); });
+  V.querySelectorAll("[data-pres]").forEach(b=>b.onclick=()=>{ sptEdit=JSON.parse(JSON.stringify(pres.find(p=>p.id===b.dataset.pres))); sptView="pres"; confirmZero=false; confirmDel=false; renderSpt(); window.scrollTo(0,0); });
+  a("newsite",()=>{ sptEdit={province_id: niveau==="promoteur"||niveau==="dpsje"?meProv:null, promoteur_nom: niveau==="promoteur"?myName:"", actif:true}; sptView="site"; renderSpt(); });
+  V.querySelectorAll("[data-site]").forEach(b=>b.onclick=()=>{ sptEdit=JSON.parse(JSON.stringify(siteById(b.dataset.site))); sptView="site"; renderSpt(); window.scrollTo(0,0); });
+  a("savepres",savePres); a("savesite",saveSite);
+  a("valid",()=>ctrlPres("valide")); a("corr",()=>ctrlPres("a_corriger"));
+  a("delpres",async()=>{ const m=$("pf-msg"); if(!confirmDel){ confirmDel=true; m.className="msg err"; m.textContent="Touchez à nouveau « Supprimer » pour confirmer."; return; } confirmDel=false;
+    const r=await db.from("presences").delete().eq("id",sptEdit.id).select("id"); if(r.error||!r.data?.length){ m.className="msg err"; m.textContent="Suppression impossible."; return; } await sptLoad(); sptView=null; renderSpt(); });
+  a("delsite",async()=>{ const m=$("sf-msg"); if(!confirmDel){ confirmDel=true; m.className="msg err"; m.textContent="Toutes les fiches de ce site seront supprimées. Touchez à nouveau pour confirmer."; return; } confirmDel=false;
+    const r=await db.from("sites").delete().eq("id",sptEdit.id).select("id"); if(r.error||!r.data?.length){ m.className="msg err"; m.textContent="Suppression impossible."; return; } await sptLoad(); sptView=null; renderSpt(); });
+  // saisie : totaux en direct
+  V.querySelectorAll("[data-day]").forEach(i=>i.oninput=()=>{ const j={}; V.querySelectorAll("[data-day]").forEach(x=>{ (j[x.dataset.day] ||= {})[x.dataset.sx]=x.value; }); DAYS.forEach(([k])=>{ const t=(+j[k]?.f||0)+(+j[k]?.h||0); $("tt-"+k).textContent=t||""; }); const t=totalsOf(j); $("tt-f").innerHTML=`<b>${t.total_f}</b>`; $("tt-h").innerHTML=`<b>${t.total_h}</b>`; $("tt-t").innerHTML=`<b>${t.total}</b>`; });
+  const ps=$("pf-sem"); if(ps && !sptEdit?.id) ps.onchange=()=>{ $("pf-mois").value=weekMonth(+$("pf-annee").value,+ps.value); };
+  const pa=$("pf-annee"); if(pa && !sptEdit?.id) pa.onchange=()=>{ sptEdit.annee=+pa.value; Object.assign(sptEdit, readPresForm(), {annee:+pa.value}); renderSpt(); };
+  // transmissions
+  a("tr-mens",()=>{ const s=siteById(F.site), L=presIn([s.id],[F.mois]), g=agg(L); transmit({type:"R-MENS",periode:perCode("mois"),site_id:s.id,province_id:null,region_id:null,synthese:{fiches:g.n,femmes:g.f,hommes:g.h,total:g.t}}); });
+  a("tr-trim",()=>{ const pid=niveau==="dpsje"?meProv:+F.prov; const sl=sites.filter(s=>s.province_id===pid), g=agg(presIn(sl.map(s=>s.id),monthsOf("trim"))), c=completude(sl,monthsOf("trim")); transmit({type:"R-TRIM",periode:perCode("trim"),site_id:null,province_id:pid,region_id:null,synthese:{sites:sl.length,fiches:g.n,validees:g.valide,femmes:g.f,hommes:g.h,total:g.t,completude:c.pct}}); });
+  a("tr-sem",()=>{ const rid=niveau==="drsje"?meReg:+F.reg; const sl=sites.filter(s=>siteProv(s)?.region_id===rid), g=agg(presIn(sl.map(s=>s.id),monthsOf("sem"))), c=completude(sl,monthsOf("sem")); transmit({type:"R-SEM",periode:perCode("sem"),site_id:null,province_id:null,region_id:rid,synthese:{sites:sl.length,fiches:g.n,validees:g.valide,femmes:g.f,hommes:g.h,total:g.t,completude:c.pct}}); });
+  a("csvpres",()=>{ const months=F.moisSel?[F.moisSel]:monthsOf("annee"); csvDownload(`fiches_hebdo_${F.annee}.csv`,presCols,presRows(presIn(visibleSites().map(s=>s.id),months))); });
+  a("csvbase",()=>{ F.site=""; csvDownload(`base_centrale_spt_${F.annee}.csv`,presCols,presRows(presIn(visibleSites().map(s=>s.id),monthsOf("annee")))); });
+  a("csvrap",()=>{ const per = sptTab==="rapport" ? (niveau==="promoteur"?"mois":niveau==="dpsje"?"trim":"sem") : "annee";
+    let sl = niveau==="promoteur"?[siteById(F.site)] : niveau==="dpsje"?sites.filter(s=>s.province_id===meProv) : niveau==="drsje"?sites.filter(s=>siteProv(s)?.region_id===meReg) : visibleSites();
+    if(isAdmin && per==="trim") sl=sites.filter(s=>s.province_id===+F.prov); if(isAdmin && per==="sem") sl=sites.filter(s=>siteProv(s)?.region_id===+F.reg);
+    csvDownload(`rapport_${perCode(per)}.csv`,presCols,presRows(presIn(sl.filter(Boolean).map(s=>s.id),monthsOf(per)))); });
+}
+
+/* ---- modules (administrateur) ---- */
+function setMod(m){
+  mod=m; document.querySelectorAll("#modbar [data-mod]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mod===m));
+  $("navrow").querySelector(".tabs").hidden = m!=="carnets";
+  if(m==="carnets"){ $("v-spt").hidden=true; $("v-comptes").hidden=true; view(tab||"list"); if(!list.length) loadAll().then(sync); }
+  else if(m==="spt"){ showSpt(); (sptLoaded?Promise.resolve():sptLoad()).then(renderSpt); }
+  else { ["v-list","v-dash","v-fiche","v-result","evalfilter-row","top-actions","footbar","v-spt"].forEach(id=>$(id).hidden=true); $("v-comptes").hidden=false; $("navrow").hidden=false; loadTerritoires().then(()=>loadProfiles()).then(()=>renderEvMgr("evmgr2")); }
+}
+document.querySelectorAll("#modbar [data-mod]").forEach(b=>b.onclick=()=>setMod(b.dataset.mod));
+async function loadProfiles(){ const r=await db.from("profiles").select("*").order("created_at").then(x=>x,e=>({error:e})); if(!r.error){ profiles=r.data; profiles.forEach(p=>names[p.id]=p.nom||p.email); } }
+
 /* ---------- mode hors ligne : cache local + file d'envoi ---------- */
 const LS = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
              set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch{ return false; } },
@@ -979,6 +1468,7 @@ function updateNetUI(){
 }
 async function sync(){
   if(syncing || !myId || !navigator.onLine) { updateNetUI(); return; }
+  if(!(niveau==="evaluateur"||isAdmin)) return;
   let ob=outbox(); const ids=Object.keys(ob);
   let session=null; try{ ({data:{session}} = await sb.auth.getSession()); }catch{}
   if(!session){ if(ids.length){ $("list-msg").className="msg err"; $("list-msg").textContent="Reconnectez-vous pour envoyer les carnets enregistrés sur cet appareil."; } return; }
@@ -1002,9 +1492,9 @@ async function sync(){
   if(failed){ m.className="msg err"; m.textContent=`${failed} carnet${failed>1?"s":""} refusé${failed>1?"s":""} par le serveur (compte désactivé ?). Ils restent sur cet appareil.`; }
   updateNetUI();
 }
-window.addEventListener("online", ()=>{ updateNetUI(); sync(); });
+window.addEventListener("online", async ()=>{ updateNetUI(); if(niveau==="evaluateur"||isAdmin) sync(); const n=await sptSync(); if(n||sptOffline){ await sptLoad(); if(mod==="spt") renderSpt(); } });
 window.addEventListener("offline", ()=>{ updateNetUI(); });
-setInterval(()=>{ if(navigator.onLine && myId && (Object.keys(outbox()).length || offlineMode)) sync(); }, 30000);
+setInterval(async ()=>{ if(!navigator.onLine || !myId) return; if(Object.keys(outbox()).length || offlineMode) sync(); if(sptQueue().length){ const n=await sptSync(); if(n){ await sptLoad(); if(mod==="spt") renderSpt(); } } }, 30000);
 
 /* ---------- PWA : installation et mode hors ligne de l'interface ---------- */
 let deferredPrompt=null;
