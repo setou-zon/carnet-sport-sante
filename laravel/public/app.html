@@ -1,0 +1,1687 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<title>Carnet Sport Santé</title>
+<link rel="stylesheet" href="fonts/garamond.css">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#00703C">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sport Santé">
+<meta charset="utf-8">
+<script src="vendor/jspdf.umd.min.js"></script>
+<style>
+/* Layout: the carnet's own system (navy + orange, condensed caps titles). One working column; list of participants, then the participant's carnet as collapsible pages with a sticky evaluation bar. */
+:root{
+  --bg:#FFFFFF; --surface:#FFFFFF; --fg:#1E2933; --muted:#66707A; --line:#DCE3DE; --track:#EEF3EF; --field:#FFFFFF;
+  /* Drapeau du Burkina Faso : rouge #EF2B2D, vert #009E49, étoile jaune #FCD116 (teintes foncées pour le texte) */
+  --navy:#00703C; --navy-fg:#FFFFFF; --orange:#C8102E; --rust:#A50E21; --yellow:#FCD116; --flag-red:#EF2B2D; --flag-green:#009E49;
+  --box:#EAF5EE; --peach:#FFF6D6; --ok:#00703C; --danger:#9B1C1C; --ink:#1F4FA0;
+  --s1:#BFE3CB; --s2:#4FAE78; --s3:#00703C;
+  --f-display:"EB Garamond",Garamond,"Times New Roman",serif;
+  --f-body:"EB Garamond",Garamond,"Times New Roman",serif;
+}
+.flagband{position:fixed;left:0;right:0;top:0;z-index:20;height:6px;background:linear-gradient(var(--flag-red) 50%,var(--flag-green) 50%)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{flex:none;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+.install{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--peach);border:1px solid #F2DA7A;border-radius:10px;padding:10px 12px;font-size:.88rem}
+.install .sp{flex:1;min-width:8em}
+*{box-sizing:border-box} [hidden]{display:none!important} html{color-scheme:light} body{margin:0}
+body{background:var(--bg);color:var(--fg);font:17px/1.5 var(--f-body);padding:0 16px}
+.auth{max-width:420px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.auth .fld{display:flex;flex-direction:column;gap:4px}
+.linkbtn{background:none;border:0;color:var(--navy);font:600 .88rem var(--f-body);cursor:pointer;padding:0;text-decoration:underline}
+.evrow .row-actions{grid-column:1/-1}
+.evrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:.86rem}
+.evrow .who{min-width:0;overflow-wrap:anywhere}
+.evrow .em{color:var(--muted);font-size:.78rem}
+.pill{font:600 .72rem var(--f-body);padding:2px 8px;border-radius:99px}
+.pill.on{background:var(--box);color:var(--ok)} .pill.off{background:var(--peach);color:var(--orange)}
+.wrap{max-width:760px;margin:0 auto;padding-block:24px 96px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin:0;color:var(--navy);text-wrap:balance}
+h1{font-size:2rem;line-height:1}
+h2{font-size:1.35rem}
+.eyebrow{font:600 .72rem var(--f-body);text-transform:uppercase;letter-spacing:.1em;color:var(--orange)}
+.sub{color:var(--muted);margin:2px 0 0;font-size:.9rem}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--navy);padding-bottom:12px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 .9rem var(--f-body);padding:9px 14px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.primary{background:var(--navy);color:var(--navy-fg);border-color:var(--navy)}
+.btn.accent{background:var(--orange);color:#fff;border-color:var(--orange)}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:focus-visible,input:focus,select:focus,textarea:focus,summary:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
+.msg{font-size:.86rem} .msg.err{color:var(--danger)} .msg.ok{color:var(--ok)}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* list */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+.toolbar input{flex:1;min-width:0}
+input.ro{background:var(--box);font-weight:600;letter-spacing:.03em}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:64px;resize:vertical}
+.plist{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pitem{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.pitem:last-child{border-bottom:0}
+.pitem:hover{background:var(--box)}
+.pitem .who{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.pitem .code{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.84rem;min-width:0;overflow-wrap:anywhere}
+.pitem .chips{grid-column:2;grid-row:1/3;display:flex;gap:4px;align-items:center}
+.chip{font:600 .7rem var(--f-body);padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.chip.on{background:var(--navy);border-color:var(--navy);color:var(--navy-fg)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+
+/* fiche */
+.evalbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--navy);color:var(--navy-fg);border-radius:10px;padding:10px 12px;display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
+.evalbar .lbl{font:600 .72rem var(--f-body);text-transform:uppercase;letter-spacing:.08em;opacity:.85}
+.seg{display:flex;background:rgba(255,255,255,.14);border-radius:7px;padding:3px;gap:2px}
+.seg button{border:0;background:none;color:inherit;font:600 .85rem var(--f-body);padding:6px 10px;border-radius:5px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--yellow);color:#1E2933}
+.evalbar input{width:auto;background:rgba(255,255,255,.95);color:#1E2933;border:0;padding:6px 8px}
+.evalbar .state{margin-left:auto;font-size:.8rem;opacity:.9}
+details.page{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+details.page > summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+details.page > summary::-webkit-details-marker{display:none}
+details.page > summary .pg{font-size:.78rem;color:var(--muted);white-space:nowrap}
+details.page > summary .fill{font-size:.75rem;color:var(--muted)}
+details.page[open] > summary{border-bottom:1px solid var(--line)}
+.body{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.full{grid-column:1/-1}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld > .l{font-size:.82rem;font-weight:500}
+.fld .h{font-size:.75rem;color:var(--muted)}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:.88rem;cursor:pointer;background:var(--field)}
+.opts input{width:auto;margin:0;accent-color:var(--navy)}
+.opts label:has(input:checked){border-color:var(--navy);background:var(--box)}
+.subh{grid-column:1/-1;font:700 .95rem var(--f-display);text-transform:uppercase;color:var(--rust);letter-spacing:.03em;margin-top:4px}
+.boxed{grid-column:1/-1;background:var(--box);border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+/* periodic rows */
+.ptable{grid-column:1/-1;display:flex;flex-direction:column}
+.prow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:4px 12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.prow .l{font-size:.88rem;font-weight:500;min-width:0}
+.prow .u{color:var(--muted);font-weight:400}
+.prow .hist{grid-column:1/-1;font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.prow .test{margin-top:4px;font-size:.82rem;padding:5px 8px}
+.prow input,.prow select{font-variant-numeric:tabular-nums}
+.auto{font-size:.7rem;color:var(--orange);font-weight:600;margin-left:4px}
+.note{grid-column:1/-1;font-size:.78rem;color:var(--muted);margin:0}
+.warn{grid-column:1/-1;background:var(--peach);border-radius:8px;padding:10px 12px;font-size:.85rem}
+.footbar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+.footbar .in{max-width:760px;margin:0 auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.footbar .sp{flex:1}
+/* result */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.step{display:flex;gap:12px;align-items:flex-start}
+.step .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--orange);color:#fff;font:700 .95rem var(--f-display);display:grid;place-items:center}
+.step > div{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.copy{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.copy code{font-size:.85rem;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;overflow-wrap:anywhere}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid var(--danger);border-radius:8px;padding:10px 12px}
+/* nav + dashboard */
+.navrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tabs button{border:0;background:none;color:var(--muted);font:600 .9rem var(--f-body);padding:7px 14px;border-radius:7px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--navy);color:var(--navy-fg)}
+.role{font-size:.8rem;color:var(--muted)}
+.role b{color:var(--fg)}
+.net{display:inline-block;font:600 .75rem var(--f-body);padding:2px 8px;border-radius:99px;margin-right:6px;background:var(--box);color:var(--ok)}
+.net.off{background:#FDECEC;color:var(--danger)}
+.net.wait{background:var(--peach);color:#7A5B00}
+.pend{color:#7A5B00;font-weight:600}
+.modbar{display:flex;gap:6px;flex-wrap:wrap}
+.modbar button{border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 .88rem var(--f-body);padding:8px 14px;border-radius:99px;cursor:pointer}
+.modbar button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--navy-fg)}
+.subnav{display:flex;gap:4px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
+.subnav button{border:0;background:none;color:var(--muted);font:600 .88rem var(--f-body);padding:7px 12px;border-radius:7px;cursor:pointer}
+.subnav button[aria-selected="true"]{background:var(--navy);color:var(--navy-fg)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.filters .fld{flex:1 1 140px;min-width:0}
+.st{font:600 .72rem var(--f-body);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.st.soumis{background:var(--peach);color:#7A5B00} .st.valide{background:var(--box);color:var(--ok)} .st.a_corriger{background:#FDECEC;color:var(--danger)} .st.manque{background:#F1F3F2;color:var(--muted)}
+.prow2{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;width:100%}
+.prow2:hover{background:var(--box)} .prow2:last-child{border-bottom:0}
+.prow2 .t{font-weight:600;min-width:0;overflow-wrap:anywhere} .prow2 .s{color:var(--muted);font-size:.82rem;min-width:0;overflow-wrap:anywhere}
+.prow2 .r{grid-column:2;grid-row:1/3;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-variant-numeric:tabular-nums}
+.grid7 input{width:100%;text-align:center;font-variant-numeric:tabular-nums;padding:7px 4px}
+table.dt td.l{text-align:left}
+.warnlist{margin:0;padding-left:18px;font-size:.86rem;display:flex;flex-direction:column;gap:4px}
+.okline{color:var(--ok);font-size:.88rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.kpi .v{font:700 2rem/1 var(--f-display);color:var(--navy);font-variant-numeric:tabular-nums}
+.kpi .k{font-size:.78rem;color:var(--muted)}
+.kpi.alert .v{color:var(--orange)}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel h3{font-size:1.05rem}
+.panel .cap{font-size:.76rem;color:var(--muted);margin:0}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(6em,9.5em) 1fr 5.4em;gap:8px;align-items:center;font-size:.84rem}
+.bar .track{height:14px;background:var(--track);border-radius:4px;overflow:hidden;display:flex;gap:2px}
+.bar .fillb{height:100%;background:var(--navy);border-radius:0 4px 4px 0;min-width:2px}
+.bar .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--fg)}
+.bar .lab{min-width:0;overflow-wrap:anywhere}
+.seg1{background:var(--s1)} .seg2{background:var(--s2)} .seg3{background:var(--s3)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.76rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.tscroll{overflow-x:auto}
+table.dt{width:100%;border-collapse:collapse;font-size:.84rem;font-variant-numeric:tabular-nums}
+table.dt th,table.dt td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.dt th:first-child,table.dt td:first-child{text-align:left;white-space:normal}
+table.dt th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+table.dt .n{color:var(--muted);font-size:.72rem}
+.selbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--peach);border:1px solid #F2DA7A;border-radius:10px;padding:10px 12px;font-size:.88rem}
+.selbar .sp{flex:1}
+.pitem.sel{background:#FDECEC;outline:2px solid var(--danger);outline-offset:-2px}
+.pitem .ck{width:18px;height:18px;margin-right:8px;vertical-align:-3px;accent-color:var(--danger)}
+.pitem .by{font-size:.78rem;color:var(--orange)}
+@media (max-width:640px){.dgrid{grid-template-columns:1fr}}
+@media (max-width:560px){.body,.boxed{grid-template-columns:1fr}.prow{grid-template-columns:1fr}.evalbar .state{margin-left:0;width:100%}}
+
+/* accueil */
+.home{display:flex;flex-direction:column;align-items:center;text-align:center;gap:18px;padding-top:8px}
+.home .state{font:700 .95rem var(--f-display);letter-spacing:.22em;text-transform:uppercase;color:var(--fg);margin:0}
+.home .motto{display:flex;align-items:center;gap:10px;font:italic 600 1.02rem var(--f-body);color:var(--orange);margin:-10px 0 0}
+.home .motto:before,.home .motto:after{content:"";width:28px;height:2px;background:var(--yellow)}
+.home .logos{display:flex;align-items:center;justify-content:center;gap:clamp(14px,5vw,40px);flex-wrap:wrap;padding:16px 20px;background:#fff;border:1px solid var(--line);border-radius:14px;width:100%}
+.home .logos img{height:clamp(96px,22vw,140px);width:auto;max-width:44%;object-fit:contain}
+.home .logos .sep{width:1px;align-self:stretch;background:var(--line)}
+.home .min{font:600 .9rem var(--f-body);color:var(--navy);margin:0;text-transform:uppercase;letter-spacing:.04em;text-wrap:balance}
+.home .min small{display:block;font-weight:500;color:var(--muted);letter-spacing:.08em;margin-top:2px}
+.home h1{font-size:clamp(2rem,7vw,2.8rem)}
+.home .lead{max-width:34em;color:var(--muted);margin:-8px 0 0}
+.home .mods{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;text-align:left}
+.home .mod{border:1px solid var(--line);border-top:4px solid var(--navy);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.home .mod.r{border-top-color:var(--orange)}
+.home .mod b{font:700 1.05rem var(--f-display);text-transform:uppercase;color:var(--navy)}
+.home .mod.r b{color:var(--orange)}
+.home .mod .tag{display:block;font:600 .68rem var(--f-body);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:2px}
+.home .mod .who{margin-top:8px;font:600 .8rem var(--f-body);color:var(--fg)}
+.home .step{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin-bottom:-6px}
+.home .step .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font:700 .95rem var(--f-display)}
+.home .step b{display:block;font:700 1.1rem var(--f-display);text-transform:uppercase;color:var(--fg)}
+.home .step span:not(.n){font-size:.82rem;color:var(--muted)}
+.home .mod p{margin:4px 0 0;font-size:.86rem;color:var(--muted)}
+.home .cta{display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px}
+.home .cta .btn{justify-content:center;padding:13px 16px;font-size:1rem}
+.home .foot{font-size:.78rem;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;width:100%}
+.home .star{color:var(--yellow);font-size:1.1rem;line-height:1}
+@media (max-width:560px){.home .mods{grid-template-columns:1fr}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <div class="flagband" aria-hidden="true"></div>
+  <div class="install" id="install-bar" hidden>
+    <span class="sp" id="install-txt">Installez l'application sur cet appareil pour l'ouvrir comme une app, en plein écran.</span>
+    <button class="btn primary" id="install-btn">Installer</button>
+    <button class="linkbtn" id="install-close">Plus tard</button>
+  </div>
+  <div class="top" id="apptop">
+    <div>
+      <div class="brand"><svg width="30" height="20" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="10" fill="#EF2B2D"/><rect y="10" width="30" height="10" fill="#009E49"/><polygon fill="#FCD116" points="15,5.2 16.12,8.66 19.76,8.66 16.82,10.8 17.94,14.26 15,12.12 12.06,14.26 13.18,10.8 10.24,8.66 13.88,8.66"/></svg><div class="eyebrow">MSJE / DGSL / DST · Sport pour tous</div></div>
+      <h1>Carnet Sport Santé</h1>
+      <p class="sub" id="topsub">Saisie des évaluations et remise du carnet au participant.</p>
+    </div>
+    <div class="row-actions" id="top-actions">
+      <button class="btn primary" id="new">+ Nouveau participant</button>
+    </div>
+  </div>
+  <div class="modbar" id="modbar" hidden>
+    <button data-mod="carnets" aria-pressed="true">Carnets santé</button>
+    <button data-mod="spt" aria-pressed="false">Sport pour tous</button>
+    <button data-mod="comptes" aria-pressed="false">Comptes</button>
+  </div>
+  <div class="navrow" id="navrow">
+    <nav class="tabs" role="tablist">
+      <button id="tab-list" role="tab" aria-selected="true">Participants</button>
+      <button id="tab-dash" role="tab" aria-selected="false">Tableau de bord</button>
+    </nav>
+    <span class="role"><span id="netstate" class="net" hidden></span><span id="role"></span> · <button class="linkbtn" id="refresh">Actualiser</button> · <button class="linkbtn" id="logout">Déconnexion</button></span>
+  </div>
+  <p class="msg err" id="access" hidden></p>
+  <div class="toolbar" id="evalfilter-row" hidden>
+    <label class="fld" style="flex:1"><span class="l">Évaluateur</span><select id="evalfilter"><option value="">Tous les évaluateurs</option></select></label>
+  </div>
+
+  <!-- ACCUEIL -->
+  <section id="v-home" class="home" hidden>
+    <p class="state">Burkina Faso</p>
+    <p class="motto">La Patrie ou la Mort, nous vaincrons</p>
+    <div class="logos">
+      <img src="img/msje.jpg" alt="Logo du Ministère des Sports, de la Jeunesse et de l'Emploi (MSJE)">
+      <span class="sep" aria-hidden="true"></span>
+      <img src="img/spt.jpg" alt="Logo Sport pour tous">
+    </div>
+    <p class="min">Ministère des Sports, de la Jeunesse et de l'Emploi<small>DGSL · DST</small></p>
+    <span class="star" aria-hidden="true">★</span>
+    <h1>Sport Santé &amp; Sport pour tous</h1>
+    <p class="lead">Plateforme nationale de saisie et de suivi du Carnet Sport Santé et du programme Sport pour tous.</p>
+    <div class="cta">
+      <button class="btn primary" id="home-login">Se connecter</button>
+      <button class="btn" id="home-signup">Créer un compte</button>
+      <span class="msg" id="home-msg" role="status"></span>
+    </div>
+    <p class="foot">© Ministère des Sports, de la Jeunesse et de l'Emploi · Burkina Faso</p>
+  </section>
+
+  <!-- CONNEXION -->
+  <section id="v-auth" hidden class="auth">
+    <button class="linkbtn" id="auth-home" style="align-self:flex-start">← Accueil</button>
+    <h2 id="auth-title">Connexion</h2>
+    <p class="sub" id="auth-sub">Connectez-vous avec le compte que vous avez créé.</p>
+    <form id="auth-form" style="display:flex;flex-direction:column;gap:12px" novalidate>
+      <label class="fld" id="auth-nom-row" hidden><span class="l">Nom et prénom</span><input id="auth-nom" autocomplete="name"></label>
+      <label class="fld" id="auth-niv-row" hidden><span class="l">Je suis</span><select id="auth-niv">
+        <option value="evaluateur">Évaluateur Sport Santé (carnets)</option>
+        <option value="promoteur">Promoteur sportif (site de pratique)</option>
+        <option value="dpsje">Agent DPSJE (direction provinciale)</option>
+        <option value="drsje">Agent DRSJE (direction régionale)</option>
+        <option value="national">SSEC / DST (niveau national)</option></select></label>
+      <label class="fld" id="auth-prov-row" hidden><span class="l">Province</span><select id="auth-prov"></select></label>
+      <label class="fld" id="auth-reg-row" hidden><span class="l">Région</span><select id="auth-reg"></select></label>
+      <label class="fld"><span class="l">Email</span><input id="auth-email" type="email" autocomplete="email" required></label>
+      <label class="fld"><span class="l">Mot de passe</span><input id="auth-pass" type="password" autocomplete="current-password" required minlength="6"></label>
+      <button class="btn primary" type="submit" id="auth-go">Se connecter</button>
+      <span class="msg" id="auth-msg" role="status"></span>
+    </form>
+    <p class="sub" style="margin:0" id="auth-forgot-row"><button class="linkbtn" id="auth-forgot">Mot de passe oublié ?</button></p>
+    <p class="sub" style="margin:0"><span id="auth-switch-txt">Pas encore de compte ?</span> <button class="linkbtn" id="auth-switch">Créer un compte</button></p>
+  </section>
+  <section id="v-reset" hidden class="auth">
+    <h2>Nouveau mot de passe</h2>
+    <p class="sub">Choisissez un nouveau mot de passe pour votre compte (6 caractères minimum).</p>
+    <form id="reset-form" style="display:flex;flex-direction:column;gap:12px" novalidate>
+      <label class="fld"><span class="l">Nouveau mot de passe</span><input id="reset-p1" type="password" autocomplete="new-password" minlength="6" required></label>
+      <label class="fld"><span class="l">Confirmer le mot de passe</span><input id="reset-p2" type="password" autocomplete="new-password" minlength="6" required></label>
+      <button class="btn primary" type="submit" id="reset-go">Enregistrer le mot de passe</button>
+      <span class="msg" id="reset-msg" role="status"></span>
+    </form>
+  </section>
+  <section id="v-pending" hidden class="auth">
+    <h2>Compte en attente</h2>
+    <p class="sub">Votre compte est créé. L'administrateur doit l'activer avant que vous puissiez saisir des carnets. Revenez sur cette page une fois prévenu(e).</p>
+    <div class="row-actions"><button class="btn primary" id="pending-retry">Vérifier à nouveau</button><button class="btn" id="pending-logout">Déconnexion</button></div>
+  </section>
+
+  <!-- SPORT POUR TOUS -->
+  <section id="v-spt" hidden style="display:flex;flex-direction:column;gap:12px"></section>
+  <!-- COMPTES (administrateur) -->
+  <section id="v-comptes" hidden style="display:flex;flex-direction:column;gap:12px"><div class="panel" id="evmgr2"></div></section>
+
+  <!-- TABLEAU DE BORD -->
+  <section id="v-dash" hidden style="display:flex;flex-direction:column;gap:14px"></section>
+
+  <!-- LISTE -->
+  <section id="v-list" style="display:flex;flex-direction:column;gap:12px">
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Rechercher un nom, un code, un téléphone…">
+      <button class="btn" id="csv">Exporter la base (CSV)</button>
+      <button class="btn danger" id="sel-toggle" hidden>Supprimer des carnets…</button>
+    </div>
+    <div class="selbar" id="selbar" hidden>
+      <span id="sel-count">0 carnet sélectionné</span>
+      <button class="linkbtn" id="sel-all">Tout sélectionner</button>
+      <span class="sp"></span>
+      <button class="btn danger" id="sel-del" disabled>Supprimer la sélection</button>
+      <button class="btn" id="sel-cancel">Annuler</button>
+    </div>
+    <div class="confirm" id="sel-confirm" hidden>
+      <span id="sel-confirm-txt"></span>
+      <button class="btn danger" id="sel-yes">Oui, supprimer définitivement</button><button class="btn" id="sel-no">Non</button>
+    </div>
+    <span class="msg" id="list-msg" role="status"></span>
+    <div class="plist" id="plist"><p class="empty">Aucun participant pour l'instant. Cliquez sur « Nouveau participant » pour ouvrir un premier carnet.</p></div>
+  </section>
+
+  <!-- FICHE -->
+  <section id="v-fiche" hidden style="display:flex;flex-direction:column;gap:12px">
+    <div class="row-actions"><button class="btn" id="back">← Participants</button><strong id="f-title" style="min-width:0;overflow-wrap:anywhere"></strong></div>
+    <div class="evalbar">
+      <span class="lbl">Évaluation</span>
+      <div class="seg" id="seg">
+        <button data-p="T0" aria-pressed="true">T0</button><button data-p="M6" aria-pressed="false">6 mois</button><button data-p="M12" aria-pressed="false">12 mois</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px"><span class="lbl">Date</span><input type="date" id="pdate"></label>
+      <span class="state" id="savestate"></span>
+    </div>
+    <div id="pages" style="display:flex;flex-direction:column;gap:10px"></div>
+  </section>
+
+  <!-- RESULTAT -->
+  <section id="v-result" hidden class="card">
+    <div>
+      <div class="eyebrow" id="r-code"></div>
+      <h2 id="r-name"></h2>
+      <p class="msg ok">Carnet enregistré dans votre base.</p>
+    </div>
+    <div class="step"><span class="n">1</span><div>
+      <strong>Télécharger le carnet rempli (PDF)</strong>
+      <div class="row-actions"><button class="btn accent" id="r-pdf">Télécharger le carnet</button><span class="msg" id="r-pdf-msg"></span></div>
+    </div></div>
+    <div class="step"><span class="n">2</span><div>
+      <strong>L'envoyer au participant (joindre le PDF)</strong>
+      <div class="copy" id="r-tel-box"><code id="r-tel"></code><a class="btn" id="r-wa" target="_blank" rel="noopener">Ouvrir WhatsApp</a></div>
+      <div class="copy" id="r-mail-box"><code id="r-mail"></code><a class="btn" id="r-mailto" target="_blank" rel="noopener">Ouvrir ma messagerie</a></div>
+      <div class="row-actions"><button class="btn" id="r-copy">Copier le message</button><span class="msg" id="r-msg"></span></div>
+      <span class="sub" style="font-size:.8rem">Le PDF ne s'attache pas tout seul : ajoutez le fichier téléchargé dans la conversation WhatsApp ou l'email.</span>
+    </div></div>
+    <div class="row-actions">
+      <button class="btn primary" id="r-back">Retour aux participants</button>
+      <button class="btn" id="r-edit">Modifier le carnet</button>
+    </div>
+  </section>
+</div>
+
+<div class="footbar" id="footbar" hidden><div class="in">
+  <button class="btn danger" id="del">Supprimer</button>
+  <button class="btn" id="clear-per" hidden>Effacer l'évaluation T0</button>
+  <span class="sp"></span>
+  <span class="msg" id="foot-msg"></span>
+  <button class="btn accent" id="finish">Terminer et remettre le carnet</button>
+</div>
+<div class="in confirm" id="clr-confirm" hidden style="margin-top:8px">
+  <span id="clr-txt"></span>
+  <button class="btn danger" id="clr-yes">Oui, effacer</button><button class="btn" id="clr-no">Annuler</button>
+</div>
+<div class="in confirm" id="del-confirm" hidden style="margin-top:8px">
+  <span>Supprimer définitivement ce participant et son carnet ?</span>
+  <button class="btn danger" id="del-yes">Oui, supprimer</button><button class="btn" id="del-no">Annuler</button>
+</div></div>
+
+<script>
+// Logos du carnet PDF : fichiers public/img/msje.jpg et public/img/spt.jpg (remplaçables)
+let LOGO_MSJE = "", LOGO_SPT = "";
+(async () => {
+  const lire = async u => { const b = await (await fetch(u)).blob(); return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); }); };
+  try{ LOGO_MSJE = await lire("img/msje.jpg"); }catch{}
+  try{ LOGO_SPT = await lire("img/spt.jpg"); }catch{}
+})();
+const $ = id => document.getElementById(id);
+const PERIODS = ["T0","M6","M12"], PLABEL = {T0:"T0",M6:"6 mois",M12:"12 mois"};
+const HABITS = [
+ "Bouger au moins 30 min par jour, 5 jours par semaine.",
+ "Se lever souvent et limiter le temps assis.",
+ "3 repas réguliers, des fruits et légumes, moins de sucre, sel et friture.",
+ "Boire de l'eau tout au long de la journée.",
+ "Dormir 7 à 9 h et prendre du temps pour gérer son stress.",
+ "Pas de tabac, limiter l'alcool."];
+const PROG = ["Activité physique de la vie quotidienne","AP en endurance","AP en renforcement musculaire","AP en assouplissement","Activité sportive"];
+
+/* ---------- schema (mirrors the carnet pages) ---------- */
+const SECTIONS = [
+ {id:"profil",t:"Profil & avis médical",n:2,f:[
+  {k:"code",l:"Code",ro:1,h:"Attribué automatiquement à l'enregistrement (ex. SS-2026-0001)"},{k:"nom",l:"Nom et prénom(s)",req:1},
+  {k:"age",l:"Âge (ans)",ty:"num"},{k:"sexe",l:"Sexe",ty:"radio",o:["H","F"]},
+  {k:"contact",l:"Contact (téléphone)",ty:"tel",h:"Sert à l'envoi par WhatsApp"},{k:"email",l:"Email",ty:"email",h:"Facultatif, non imprimé"},
+  {k:"taille",l:"Taille (cm)",ty:"num",h:"Non imprimée, sert au calcul de l'IMC"},
+  {k:"antecedents",l:"Antécédents / traitements",ty:"area",full:1},
+  {box:"Avis du médecin",f:[
+   {k:"dr",l:"Dr"},{k:"consultLe",l:"le",ty:"date"},
+   {k:"qaap",l:"Q-AAP",ty:"radio",o:["Apte","Avis requis"],full:1},
+   {k:"ci",l:"Contre-indication à l'activité physique",ty:"radio",o:["Aucune","Partielle","Totale temporaire"],full:1}]},
+  {k:"aEviter",l:"À éviter",ty:"area",full:1},
+  {k:"medReeval",l:"Réévaluation le",ty:"date"}]},
+ {id:"resultats",t:"Mes résultats",n:3,per:[
+  {t:"Santé",r:[["poids","Poids","kg"],["imc","IMC","kg/m²","auto"],["tourTaille","Tour de taille","cm"],["ta","Tension artérielle","mmHg","text"]]},
+  {t:"Condition physique · test au choix",r:[["endurance","Endurance","","test"],["force","Force","","test"],["souplesse","Souplesse","","test"],["equilibre","Équilibre","","test"],["niveauCP","Niveau global","F / M / B","sel:F=F · faible|M=M · moyen|B=B · bon"]]}],
+  note:"F faible · M moyen · B bon. Test au choix de l'évaluateur : noter le test et l'unité (m, s, répét., cm)."},
+ {id:"habitudes",t:"Mes habitudes de vie",n:4,per:[
+  {t:"",r:[["minSem","Minutes actives","/ semaine"],["assis","Temps assis","h / jour"],["fruits","Fruits et légumes","portions / jour"],["sommeil","Sommeil","h / nuit"],["stress","Stress ressenti","0–10"],["tabacAlcool","Tabac / alcool","oui / non","sel:oui=oui|non=non"]]}],
+  note:"Objectif : au moins 150 minutes actives par semaine. Stress : 0 aucun, 10 maximal."},
+ {id:"bilan",t:"Bilan & orientation",n:5,f:[
+  {box:"Synthèse de l'évaluation",f:[{k:"pointsForts",l:"Points forts",full:1},{k:"aAmeliorer",l:"À améliorer",full:1},{k:"reco",l:"Recommandations",ty:"area",full:1}]},
+  {sub:"Mes objectifs"},
+  {k:"obj1",l:"Objectif 1"},{k:"obj1d",l:"pour le",ty:"date"},{k:"obj2",l:"Objectif 2"},{k:"obj2d",l:"pour le",ty:"date"},{k:"obj3",l:"Objectif 3"},{k:"obj3d",l:"pour le",ty:"date"},
+  {sub:"Professionnel APA"},
+  {k:"apaNiveau",l:"Niveau",ty:"radio",o:["Débutant","Intermédiaire","Confirmé"],full:1},
+  {k:"apaBorg",l:"Intensité cible : Borg (/10)",ty:"num"},{k:"apaFc",l:"FC cible"},
+  {k:"rdv",l:"Prochain RDV",ty:"date"},{k:"visa",l:"Visa"}]},
+ {id:"programme",t:"Mon programme d'APA",n:6,f:[
+  {k:"progLe",l:"Établi le",ty:"date"},{k:"progRevoir",l:"À revoir le",ty:"date"},
+  ...PROG.flatMap((c,i)=>[{sub:c},{k:`pg${i}ex`,l:"Exemple",full:1},{k:`pg${i}int`,l:"Intensité"},{k:`pg${i}dur`,l:"Durée"},{k:`pg${i}freq`,l:"Fréquence"}])]}
+];
+
+/* ---------- state ---------- */
+/* ---------- connexion au serveur (API Laravel) ----------
+   Petit client qui traduit les demandes des écrans en appels à l'API REST
+   du serveur (/api/...). Les écrans écrivent par exemple
+     db.from("presences").update(ligne).eq("id", id)
+   ce qui devient  PATCH /api/presences/{id}.
+   Le jeton de connexion est gardé sur l'appareil (travail hors connexion). */
+const API = new URL("api", document.baseURI).href;
+const AUTH_KEY = "cs:auth";
+const authStore = {
+  get(){ try{ return JSON.parse(localStorage.getItem(AUTH_KEY)); }catch{ return null; } },
+  set(v){ try{ if(v) localStorage.setItem(AUTH_KEY, JSON.stringify(v)); else localStorage.removeItem(AUTH_KEY); }catch{} }
+};
+async function apiCall(method, path, body){
+  const s = authStore.get(), h = {"Accept":"application/json"};
+  if(body !== undefined) h["Content-Type"] = "application/json";
+  if(s && s.access_token) h.Authorization = "Bearer " + s.access_token;
+  let res;
+  try{ res = await fetch(API + path, {method, headers:h, body: body === undefined ? undefined : JSON.stringify(body)}); }
+  catch(e){ return {data:null, error:{message:"Failed to fetch (network)"}}; }
+  let j = null; try{ j = await res.json(); }catch{}
+  if(!res.ok){
+    if(res.status === 401 && s){ authStore.set(null); }   // jeton refusé : il faudra se reconnecter
+    const message = res.status === 429 ? "rate limit : trop de demandes, réessayez dans une minute" : (j && j.message) || ("Erreur " + res.status);
+    return {data:null, error:{message, code:(j && j.code) || String(res.status), status:res.status}};
+  }
+  return {data:j, error:null};
+}
+const ROUTES = {participants:"/participants", profiles:"/profiles", sites:"/sites", presences:"/presences",
+                transmissions:"/transmissions", regions:"/regions", provinces:"/provinces"};
+class Requete {
+  constructor(table){ this.t = table; this.op = "select"; this.f = {}; this.ids = null; this.single = false; this.body = undefined; }
+  select(){ return this; }             // le serveur renvoie toujours la ligne complète
+  insert(b){ this.op = "insert"; this.body = b; return this; }
+  update(b){ this.op = "update"; this.body = b; return this; }
+  upsert(b){ this.op = "upsert"; this.body = b; return this; }
+  delete(){ this.op = "delete"; return this; }
+  eq(k, v){ this.f[k] = v; return this; }
+  in(k, v){ this.ids = v; return this; }
+  gte(k, v){ this.f[k + "_min"] = v; return this; }
+  lte(k, v){ this.f[k + "_max"] = v; return this; }
+  like(k, v){ if(k === "periode") this.f.annee = String(v).split("-")[0]; return this; }
+  order(){ return this; }
+  limit(){ return this; }
+  maybeSingle(){ this.single = true; return this; }
+  async run(){
+    const base = ROUTES[this.t], id = encodeURIComponent(this.f.id ?? "");
+    const enListe = r => r.error ? r : {data: r.data ? [r.data] : [], error:null};
+    switch(this.op){
+      case "select": {
+        const qs = new URLSearchParams(this.f).toString();
+        const r = await apiCall("GET", base + (qs ? "?" + qs : ""));
+        return this.single && !r.error ? {data:(r.data && r.data[0]) || null, error:null} : r;
+      }
+      case "insert": return enListe(await apiCall("POST", base, this.body));
+      case "update": return enListe(await apiCall("PATCH", base + "/" + id, this.body));
+      case "upsert": return enListe(await apiCall("PUT", base, this.body));
+      case "delete": return this.ids ? apiCall("POST", base + "/supprimer", {ids:this.ids}) : apiCall("DELETE", base + "/" + id);
+    }
+  }
+  then(ok, ko){ return this.run().then(ok, ko); }
+}
+// Lien reçu par email pour changer de mot de passe : ?reset=JETON&email=...
+const RESET = (() => { const q = new URLSearchParams(location.search); return q.get("reset") ? {token:q.get("reset"), email:q.get("email") || ""} : null; })();
+const RECOVERY = !!RESET, AUTH_ERR = false;
+const sessionDe = d => ({access_token:d.token, user:d.user});
+const sb = {
+  from: t => new Requete(t),
+  auth: {
+    async getSession(){ const s = authStore.get(); return {data:{session: s && s.access_token ? s : null}, error:null}; },
+    async signInWithPassword({email, password}){
+      const r = await apiCall("POST", "/auth/login", {email, password}); if(r.error) return {data:{}, error:r.error};
+      const s = sessionDe(r.data); authStore.set(s); return {data:{session:s, user:s.user}, error:null}; },
+    async signUp({email, password, options}){
+      const r = await apiCall("POST", "/auth/register", {email, password, ...((options && options.data) || {})}); if(r.error) return {data:{}, error:r.error};
+      const s = sessionDe(r.data); authStore.set(s); return {data:{session:s, user:s.user}, error:null}; },
+    async signOut(){ if(navigator.onLine) await apiCall("POST", "/auth/logout"); authStore.set(null); return {error:null}; },
+    async resetPasswordForEmail(email){ const r = await apiCall("POST", "/auth/forgot-password", {email}); return {data:{}, error:r.error}; },
+    async updateUser({password}){
+      if(RESET){
+        const r = await apiCall("POST", "/auth/reset-password", {token:RESET.token, email:RESET.email, password}); if(r.error) return {data:{}, error:r.error};
+        authStore.set(sessionDe(r.data)); return {data:{user:r.data.user}, error:null}; }
+      const r = await apiCall("POST", "/auth/password", {password}); return {data:{}, error:r.error}; }
+  }
+};
+let firstLoad=true, db=sb, downloads=true, myId=null, myName="", isAdmin=false, profiles=[];
+function saveFile(name, blob){ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }
+let list=[], cur=null, period="T0", dirty=false, saving=false, again=false, saveTimer=null, indexed=false, tab="list";
+const byEval={}, subs={}, names={};
+const blank = () => ({_exists:false, id:"p-"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), owner:myId, createdAt:Date.now(), f:{}, p:{T0:{},M6:{},M12:{}}});
+const evalName = uid => uid===myId ? (myName||"Vous") : (names[uid]||"Évaluateur");
+
+/* ---------- helpers ---------- */
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dfr = v => { if(!v) return ""; const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v); return m?`${m[3]}/${m[2]}/${m[1]}`:v; };
+const num = v => { const x=parseFloat(String(v).replace(",",".")); return isFinite(x)?x:null; };
+function view(v){
+  if(v!=="list" && typeof selMode!=="undefined" && selMode) setSel(false);
+  $("v-spt").hidden=true; $("v-comptes").hidden=true; $("navrow").querySelector(".tabs").hidden=false;
+  $("v-list").hidden = v!=="list"; $("v-dash").hidden = v!=="dash"; $("v-fiche").hidden = v!=="fiche"; $("v-result").hidden = v!=="result";
+  $("footbar").hidden = v!=="fiche"; $("top-actions").hidden = v!=="list";
+  const home = v==="list"||v==="dash";
+  $("navrow").hidden = !home; $("evalfilter-row").hidden = !home;
+  if(home){ tab=v; $("tab-list").setAttribute("aria-selected",v==="list"); $("tab-dash").setAttribute("aria-selected",v==="dash"); }
+  if(v==="dash") renderDash();
+  window.scrollTo(0,0);
+}
+$("tab-list").onclick=()=>view("list");
+$("tab-dash").onclick=()=>view("dash");
+$("evalfilter").onchange=()=>{ renderList(); if(tab==="dash") renderDash(); };
+const scoped = () => { const e=$("evalfilter").value; return e?list.filter(x=>x.owner===e):list; };
+
+/* ---------- form rendering ---------- */
+function fieldHTML(d){
+  if(d.sub) return `<div class="subh">${esc(d.sub)}</div>`;
+  if(d.warn) return `<div class="warn">${esc(d.warn)}</div>`;
+  if(d.box) return `<div class="boxed"><div class="subh" style="color:var(--navy);margin:0">${esc(d.box)}</div>${d.f.map(fieldHTML).join("")}</div>`;
+  const cls = "fld"+(d.full?" full":""), id="f-"+d.k, lab = d.l?`<span class="l">${esc(d.l)}${d.req?' <span style="color:var(--orange)">*</span>':""}</span>`:"";
+  const hint = d.h?`<span class="h">${esc(d.h)}</span>`:"";
+  if(d.ty==="radio"||d.ty==="checks"){
+    const t = d.ty==="radio"?"radio":"checkbox";
+    return `<div class="${cls}" role="group">${lab}<div class="opts">${d.o.map((o,i)=>`<label><input type="${t}" name="${id}" id="${id}-${i}" value="${esc(o)}" data-k="${d.k}" data-ty="${d.ty}">${esc(o)}</label>`).join("")}</div>${hint}</div>`;
+  }
+  if(d.ty==="area") return `<label class="${cls}">${lab}<textarea id="${id}" data-k="${d.k}"></textarea>${hint}</label>`;
+  const type = d.ty==="date"?"date":d.ty==="tel"?"tel":d.ty==="email"?"email":"text";
+  const im = d.ty==="num"?' inputmode="decimal"':"";
+  const ro = d.ro?' readonly tabindex="-1" placeholder="Automatique" class="ro"':"";
+  return `<label class="${cls}">${lab}<input type="${type}" id="${id}" data-k="${d.k}"${im}${ro} autocomplete="off">${hint}</label>`;
+}
+function perHTML(sec){
+  return sec.per.map(g=>`${g.t?`<div class="subh">${esc(g.t)}</div>`:""}<div class="ptable">${g.r.map(([k,l,u,kind])=>{
+    let input;
+    if(kind&&kind.startsWith("sel:")) input=`<select id="p-${k}" data-pk="${k}"><option value=""></option>${kind.slice(4).split("|").map(o=>{const [v,lab]=o.includes("=")?o.split("="):[o,o]; return `<option value="${esc(v)}">${esc(lab)}</option>`;}).join("")}</select>`;
+    else input=`<input id="p-${k}" data-pk="${k}" ${kind==="text"||kind==="test"?"":'inputmode="decimal"'} autocomplete="off" placeholder="${kind==="test"?"Résultat":""}">`;
+    const test = kind==="test"?`<input class="test" id="t-${k}" data-tk="${k}" placeholder="Test utilisé (ex. 6 min marche, m)" autocomplete="off">`:"";
+    const auto = kind==="auto"?`<span class="auto">calcul auto</span>`:"";
+    return `<div class="prow"><div class="l">${esc(l)} <span class="u">${esc(u)}</span>${auto}${test}</div><div>${input}</div><div class="hist" id="h-${k}"></div></div>`;
+  }).join("")}</div>`).join("") + (sec.note?`<p class="note">${esc(sec.note)}</p>`:"");
+}
+function buildPages(){
+  $("pages").innerHTML = SECTIONS.map((s,i)=>`<details class="page" ${i===0?"open":""} id="sec-${s.id}">
+    <summary><h2>${esc(s.t)}</h2><span class="pg">${s.per?'<span class="fill">par évaluation · </span>':""}Page ${s.n}</span></summary>
+    <div class="body">${s.per?perHTML(s):s.f.map(fieldHTML).join("")}</div></details>`).join("");
+}
+buildPages();
+
+function fillForm(){
+  document.querySelectorAll("[data-k]").forEach(el=>{
+    const v = cur.f[el.dataset.k];
+    if(el.dataset.ty==="radio") el.checked = v===el.value;
+    else if(el.dataset.ty==="checks") el.checked = Array.isArray(v)&&v.includes(el.value);
+    else el.value = v??"";
+  });
+  document.querySelectorAll("[data-tk]").forEach(el=>el.value = cur.f["test_"+el.dataset.tk]??"");
+  fillPeriod();
+  $("f-title").textContent = [cur.f.nom, cur.f.code].filter(Boolean).join(" · ") || "Nouveau participant";
+}
+function fillPeriod(){
+  if($("clear-per")){ $("clear-per").hidden=!isAdmin || !(cur&&cur._exists); $("clear-per").textContent=`Effacer l'évaluation ${PLABEL[period]}`; $("clr-confirm").hidden=true; }
+  document.querySelectorAll("#seg button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.p===period));
+  const pv = cur.p[period]||{};
+  $("pdate").value = pv.date||"";
+  document.querySelectorAll("[data-pk]").forEach(el=>{
+    const k=el.dataset.pk; el.value = pv[k]??"";
+    const others = PERIODS.filter(p=>p!==period && cur.p[p] && cur.p[p][k]!==undefined && cur.p[p][k]!=="").map(p=>`${PLABEL[p]} : ${cur.p[p][k]}`);
+    $("h-"+k).textContent = others.join("   ·   ");
+    $("h-"+k).hidden = !others.length;
+  });
+}
+
+/* ---------- input handling ---------- */
+document.addEventListener("input", e=>{
+  const el=e.target; if(!cur || !$("v-fiche").contains(el)) return;
+  if(el.dataset.k){
+    const k=el.dataset.k;
+    if(el.dataset.ty==="radio") cur.f[k]=el.value;
+    else if(el.dataset.ty==="checks") cur.f[k]=[...document.querySelectorAll(`[name="f-${k}"]:checked`)].map(x=>x.value);
+    else cur.f[k]=el.value;
+    if(k==="taille") autoCalc();
+    if(k==="nom"||k==="code") $("f-title").textContent=[cur.f.nom,cur.f.code].filter(Boolean).join(" · ")||"Nouveau participant";
+  } else if(el.dataset.pk){
+    (cur.p[period] ||= {})[el.dataset.pk]=el.value;
+    if(["poids","minSem"].includes(el.dataset.pk)) autoCalc();
+  } else if(el.dataset.tk){ cur.f["test_"+el.dataset.tk]=el.value; }
+  else if(el.id==="pdate"){ (cur.p[period] ||= {}).date=el.value; }
+  else return;
+  markDirty();
+});
+// radios do not always fire input in older engines
+document.addEventListener("change", e=>{ if(e.target.dataset && (e.target.dataset.ty==="radio"||e.target.dataset.ty==="checks"||e.target.tagName==="SELECT")) e.target.dispatchEvent(new Event("input",{bubbles:true})); });
+function autoCalc(){
+  const pv = cur.p[period] ||= {};
+  const w=num(pv.poids), h=num(cur.f.taille);
+  if(w && h){ pv.imc=(w/((h/100)**2)).toFixed(1); $("p-imc").value=pv.imc; }
+}
+document.querySelectorAll("#seg button").forEach(b=>b.onclick=()=>{ period=b.dataset.p; fillPeriod(); });
+
+/* ---------- saving ---------- */
+function markDirty(){ dirty=true; $("savestate").textContent="Modifications en cours…"; clearTimeout(saveTimer); saveTimer=setTimeout(save,1200); }
+async function save(){
+  if(!cur) return false;
+  if(!cur.f.nom){ $("savestate").textContent="Renseignez le nom pour enregistrer"; return false; }
+  if(!db){ $("savestate").textContent="Base indisponible : rien n'est enregistré"; return false; }
+  if(saving){ again=true; return false; }
+  saving=true; clearTimeout(saveTimer);
+  const row = {id:cur.id, f:JSON.parse(JSON.stringify(cur.f)), p:JSON.parse(JSON.stringify(cur.p)), updated_at:new Date().toISOString()};
+  if(!navigator.onLine || offlineMode){ const ok=queueLocal(row); saving=false; if(again){ again=false; return save(); } return ok; }
+  try{
+    const q = cur._exists ? db.from("participants").update(row).eq("id",cur.id).select("id")
+                          : db.from("participants").insert({...row, owner:cur.owner||myId}).select("id,f");
+    const {data,error} = await q;
+    if(error) throw error;
+    if(!data || !data.length) throw {code:"denied"};
+    if(data[0].f && data[0].f.code && data[0].f.code!==cur.f.code){ cur.f.code=data[0].f.code; $("f-code").value=cur.f.code; $("f-title").textContent=[cur.f.nom,cur.f.code].filter(Boolean).join(" · "); }
+    $("clear-per").hidden=!isAdmin;
+    cur._exists = true; cur._pending = false; dirty=false; $("savestate").textContent="Enregistré ✓"+(cur.f.code?" · code "+cur.f.code:"");
+    { const ob=outbox(); if(ob[cur.id]){ delete ob[cur.id]; LS.set(kOut(),ob); } }
+    upsertLocal(); saveCache(); updateNetUI();
+  }
+  catch(err){
+    if(isNetErr(err)){ const ok=queueLocal(row); saving=false; if(again){ again=false; return save(); } return ok; }
+    $("savestate").textContent = err && (err.code==="denied"||err.code==="42501") ? "Accès refusé : votre compte n'est peut-être pas activé"
+      : "Échec de l'enregistrement, nouvel essai…";
+    if(!(err && (err.code==="denied"||err.code==="42501"))) setTimeout(save,4000);
+    saving=false; return false; }
+  saving=false;
+  if(again){ again=false; return save(); }
+  return true;
+}
+
+/* ---------- navigation ---------- */
+function openFiche(p){ cur = JSON.parse(JSON.stringify(p)); cur.p ||= {}; PERIODS.forEach(x=>cur.p[x] ||= {});
+  period = PERIODS.slice().reverse().find(x=>Object.keys(cur.p[x]).length) || "T0";
+  const who = id => id===myId ? "vous" : evalName(id);
+  dirty=false; $("savestate").textContent = !p._exists ? "Nouveau carnet"
+    : `Carnet de ${who(p.owner)}` + (p.updatedBy && p.updatedBy!==p.owner ? ` · modifié en dernier par ${who(p.updatedBy)}` : "");
+  $("del-confirm").hidden=true; $("foot-msg").textContent="";
+  $("del").hidden = !!(p._exists && p.owner!==myId && !isAdmin);
+  document.querySelectorAll("details.page").forEach((d,i)=>d.open = i===0);
+  fillForm(); view("fiche"); }
+$("new").onclick = () => openFiche(blank());
+$("back").onclick = async () => { if(dirty) await save(); cur=null; view(tab); };
+$("del").onclick = () => { $("del-confirm").hidden=false; };
+$("del-no").onclick = () => { $("del-confirm").hidden=true; };
+$("del-yes").onclick = async () => {
+  if(cur._exists && (!navigator.onLine || offlineMode)){ $("foot-msg").textContent="Suppression impossible hors ligne : réessayez une fois connecté."; $("foot-msg").className="msg err"; return; }
+  try{ if(cur._exists){ const {error}=await db.from("participants").delete().eq("id",cur.id); if(error) throw error; }
+    { const ob=outbox(); if(ob[cur.id]){ delete ob[cur.id]; LS.set(kOut(),ob); } }
+    list=list.filter(x=>x.id!==cur.id); cur=null; dirty=false; saveCache(); updateNetUI(); renderList(); view("list"); }
+  catch{ $("foot-msg").textContent="Suppression impossible."; $("foot-msg").className="msg err"; }
+};
+$("finish").onclick = async () => {
+  const m=$("foot-msg"); m.className="msg err";
+  if(!cur.f.nom){ m.textContent="Renseignez le nom et prénom (page Profil & avis médical)."; $("sec-profil").open=true; $("f-nom").focus(); return; }
+  $("finish").disabled=true; m.className="msg"; m.textContent="Enregistrement…";
+  const ok = await save(); $("finish").disabled=false;
+  if(!ok && dirty){ m.className="msg err"; m.textContent="Le carnet n'a pas pu être enregistré. Réessayez."; return; }
+  if(!cur.f.code){ m.className="msg err"; m.textContent = (!navigator.onLine||offlineMode) ? "Carnet enregistré sur cet appareil. Le code sera attribué dès le retour de la connexion : vous pourrez alors remettre le carnet." : "Le code n'a pas encore été attribué. Vérifiez la connexion puis réessayez."; return; }
+  m.textContent=""; openResult();
+};
+
+/* ---------- result ---------- */
+function waNumber(t){ let d=String(t||"").replace(/\D/g,""); if(d.startsWith("00")) d=d.slice(2); if(d.length===8) d="226"+d; return d; }
+function message(){
+  const f=cur.f; const prenom=(f.nom||"").split(" ").slice(-1)[0];
+  return [`Bonjour ${f.nom||""},`,"",
+   `Voici votre carnet Sport Santé (code ${f.code}) avec les résultats de votre évaluation.`,
+   f.rdv?`Votre prochain rendez-vous : le ${dfr(f.rdv)}.`:"",
+   f.obj1?`Votre premier objectif : ${f.obj1}${f.obj1d?" (pour le "+dfr(f.obj1d)+")":""}.`:"","",
+   "Apportez ce carnet à chaque séance et à chaque évaluation.","Bouger plus, s'asseoir moins !","",
+   myName||""].filter((l,i,a)=>!(l===""&&a[i-1]==="")).join("\n").trim();
+}
+function openResult(){
+  const f=cur.f;
+  $("r-code").textContent=`Code ${f.code}`; $("r-name").textContent=f.nom;
+  const tel=waNumber(f.contact);
+  $("r-tel-box").hidden=!tel; $("r-tel").textContent=f.contact||"";
+  $("r-wa").href=`https://wa.me/${tel}?text=${encodeURIComponent(message())}`;
+  $("r-mail-box").hidden=!f.email; $("r-mail").textContent=f.email||"";
+  $("r-mailto").href=`mailto:${encodeURIComponent(f.email||"")}?subject=${encodeURIComponent("Votre carnet Sport Santé – "+f.code)}&body=${encodeURIComponent(message())}`;
+  $("r-pdf-msg").textContent=""; $("r-msg").textContent="";
+  $("r-pdf").disabled=!downloads; if(!downloads){ $("r-pdf-msg").textContent="Téléchargement indisponible dans cet affichage."; $("r-pdf-msg").className="msg err"; }
+  view("result");
+}
+$("r-copy").onclick = async () => { try{ await navigator.clipboard.writeText(message()); $("r-msg").textContent="Message copié."; $("r-msg").className="msg ok"; }catch{ $("r-msg").textContent="Copie impossible ici."; $("r-msg").className="msg err"; } };
+$("r-back").onclick = () => { cur=null; view("list"); };
+$("r-edit").onclick = () => view("fiche");
+$("r-pdf").onclick = async () => {
+  const m=$("r-pdf-msg"); m.className="msg";
+  if(!window.jspdf){ m.textContent="Le générateur PDF n'a pas pu se charger. Rechargez la page."; m.className="msg err"; return; }
+  try{
+    const blob = buildCarnet(cur);
+    const name = `Carnet_Sport_Sante_${cur.f.code}_${cur.f.nom}.pdf`.replace(/[^\w.\-À-ÿ]+/g,"_");
+    saveFile(name, blob);
+    m.textContent="Carnet téléchargé. Joignez-le à votre message."; m.className="msg ok";
+  }catch(err){ console.error(err); m.textContent=err&&err.code==="declined"?"Téléchargement annulé.":"Téléchargement impossible ici."; m.className="msg err"; }
+};
+
+/* ---------- PDF : the carnet, A6, same pages ---------- */
+function buildCarnet(P){
+  const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"mm",format:"a6"});
+  const W=105,H=148,M=8, f=P.f, p=P.p;
+  const NAVY=[27,51,80],OR=[224,123,57],RUST=[181,82,27],CREAM=[245,242,236],BOX=[227,234,242],PEACH=[251,227,211],GR=[110,110,110],LN=[175,175,175],INK=[28,75,160],TXT=[33,37,41];
+  const T=s=>String(s??"").replace(/[≥→₂]/g,c=>({"≥":">=","→":"->","₂":"2"}[c]));
+  let first=true;
+  const page=(title,n)=>{ if(!first) doc.addPage(); first=false;
+    doc.setFillColor(...CREAM); doc.rect(0,0,W,H,"F");
+    if(!title) return;
+    doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(...NAVY); doc.text(title.toUpperCase(),M,15);
+    doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(...GR); doc.text(`Sport Santé · ${n}`,W-M,15,{align:"right"});
+    doc.setDrawColor(...NAVY); doc.setLineWidth(.4); doc.line(M,18,W-M,18); };
+  const font=(sz,st="normal",col=TXT)=>{ doc.setFont("helvetica",st); doc.setFontSize(sz); doc.setTextColor(...col); };
+  const val=(v,x,y,maxW)=>{ if(v===undefined||v===null||v==="") return; font(7.5,"normal",INK); let s=T(v); if(maxW) s=doc.splitTextToSize(s,maxW)[0]; doc.text(s,x,y); };
+  const lineF=(label,v,x,y,w)=>{ font(6.8,"normal",TXT); doc.text(T(label),x,y); const lw=doc.getTextWidth(T(label))+1.5;
+    doc.setDrawColor(...LN); doc.setLineWidth(.2); doc.line(x+lw,y+.6,x+w,y+.6); val(v,x+lw+.5,y-.4,w-lw-1); };
+  const box=(x,y,on)=>{ doc.setDrawColor(...TXT); doc.setLineWidth(.25); doc.rect(x,y-2.4,2.6,2.6); if(on){ doc.setFillColor(...INK); doc.rect(x+.5,y-1.9,1.6,1.6,"F"); } };
+  const opt=(label,on,x,y,col=TXT)=>{ box(x,y,on); font(6.8,"normal",col); doc.text(T(label),x+3.6,y); return x+3.6+doc.getTextWidth(T(label))+3; };
+  const areaF=(label,v,x,y,w,lines=2)=>{ font(6.8,"normal",TXT); doc.text(T(label),x,y); const lw=doc.getTextWidth(T(label))+1.5;
+    const txt = v?doc.splitTextToSize(T(v),w-lw-1):[]; doc.setDrawColor(...LN); doc.setLineWidth(.2);
+    for(let i=0;i<lines;i++){ const yy=y+i*5.2, xs=i===0?x+lw:x; doc.line(xs,yy+.6,x+w,yy+.6); if(txt[i]) { font(7.2,"normal",INK); doc.text(txt[i],xs+.5,yy-.4); } }
+    return y+lines*5.2; };
+  const fmtV=(k,v)=> k&&/(Le|le|d|Jusquau|rdv|Revoir|Reeval)$/.test(k)?dfr(v):v;
+
+  // periodic table
+  const ptable=(y,head,groups,rowH=5.6)=>{
+    const c0=M, cw=[46,0,0,0]; const colW=(W-2*M-46)/3;
+    doc.setFillColor(...NAVY); doc.roundedRect(M,y,W-2*M,6,1,1,"F");
+    font(6.8,"bold",[255,255,255]); doc.text(head,M+2,y+4);
+    ["T0","6 mois","12 mois"].forEach((h,i)=>doc.text(h,M+46+colW*i+colW/2,y+4,{align:"center"}));
+    y+=6;
+    const row=(label,unit,vals,bold,test)=>{
+      const h = test!==undefined?rowH+3:rowH;
+      doc.setDrawColor(...LN); doc.setLineWidth(.15); doc.line(M,y+h,W-M,y+h);
+      for(let i=0;i<3;i++) doc.line(M+46+colW*i,y,M+46+colW*i,y+h);
+      font(6.6,bold?"bold":"normal",TXT); doc.text(T(label),M+1,y+3.8);
+      if(unit){ const lw=doc.getTextWidth(T(label)); font(6,"normal",GR); doc.text(T(unit),M+1+lw+1,y+3.8); }
+      if(test!==undefined){ font(5.8,"normal",GR); doc.text("Test :",M+1,y+7.2); if(test){ font(6.2,"normal",INK); doc.text(doc.splitTextToSize(T(test),36)[0],M+8,y+7.2);} else { doc.setDrawColor(...LN); doc.line(M+8,y+7.6,M+44,y+7.6); } }
+      vals.forEach((v,i)=>{ if(v!==undefined&&v!==""){ font(6.8,"normal",INK); doc.text(doc.splitTextToSize(T(v),colW-1)[0],M+46+colW*i+colW/2,y+3.8,{align:"center"}); } });
+      y+=h; };
+    row("Date","",PERIODS.map(x=>dfr(p[x]?.date)),true);
+    groups.forEach(g=>{
+      if(g.t){ y+=1; font(7,"bold",RUST); doc.text(T(g.t.toUpperCase()),M,y+4); y+=5.2; doc.setDrawColor(...LN); doc.line(M,y,W-M,y); }
+      g.r.forEach(([k,l,u,kind])=>row(l,u,PERIODS.map(x=>kind==="poidsimc"?[p[x]?.poids,p[x]?.imc?String(p[x].imc).replace(".",","):""].filter(Boolean).join(" / "):p[x]?.[k]),false,kind==="test"?(f["test_"+k]||""):undefined));
+    });
+    return y; };
+
+  /* 1 cover */
+  page(); doc.setFillColor(...NAVY); doc.rect(0,0,W,H,"F");
+  doc.setFillColor(255,255,255); doc.roundedRect(6,7,93,21,2,2,"F");
+  try{ doc.addImage(LOGO_MSJE,"JPEG",9,9.5,15,15); }catch{}
+  font(6.6,"bold",NAVY); doc.text(doc.splitTextToSize("Ministère des Sports, de la Jeunesse et de l'Emploi",66),27,13);
+  font(6,"normal",NAVY); doc.text("BURKINA FASO",27,20.3); font(6.2,"bold",OR); doc.text("MSJE / DGSL / DST",27,24.3);
+  doc.setFillColor(...OR); doc.rect(8,33,13,1.2,"F");
+  font(33,"bold",[255,255,255]); doc.text("SPORT",8,49); doc.text("SANTÉ",8,62);
+  font(7.8,"normal",[225,232,240]); doc.text(doc.splitTextToSize("Mon carnet de suivi de la condition physique, de l'activité physique et de la sédentarité",86),8,71);
+  doc.setDrawColor(...OR); doc.setLineWidth(.5);
+  [[18,90,46,90],[46,90,49,85],[49,85,51,95],[51,95,53,88],[53,88,55,90],[55,90,80,90]].forEach(a=>doc.line(...a));
+  font(7,"normal",[255,255,255]); doc.text("Propriétaire :",8,103); doc.text("Code participant :",8,110);
+  doc.setDrawColor(255,255,255); doc.setLineWidth(.25); doc.line(26,103.6,W-8,103.6); doc.line(31,110.6,W-8,110.6);
+  font(8,"bold",[255,255,255]); doc.text(doc.splitTextToSize(T(f.nom||""),68)[0]||"",27,102.5); doc.text(T(f.code||""),32,109.5);
+  doc.setFillColor(255,255,255); doc.roundedRect(8,116,47,25,2,2,"F");
+  try{ doc.addImage(LOGO_SPT,"JPEG",10,118.5,43,20); }catch{}
+  font(6.8,"normal",[225,232,240]); doc.text("Bouger plus",W-8,128,{align:"right"}); doc.text("S'asseoir moins",W-8,132,{align:"right"});
+
+
+  const S=id=>SECTIONS.find(s=>s.id===id); const w=W-2*M; let y, x, yy;
+
+  /* 2 profil & avis médical */
+  page("Profil & avis médical",2); y=26;
+  lineF("Code",f.code,M,y,36); lineF("Âge",f.age?f.age+" ans":"",M+38,y,22);
+  font(6.8); doc.text("Sexe",M+64,y); x=opt("H",f.sexe==="H",M+71,y); opt("F",f.sexe==="F",x,y); y+=6.5;
+  lineF("Nom et prénom(s)",f.nom,M,y,w); y+=6.5;
+  lineF("Contact",f.contact,M,y,w); y+=6.5;
+  y=areaF("Antécédents / traitements",f.antecedents,M,y,w,2)+1.5;
+  doc.setFillColor(...NAVY); doc.roundedRect(M,y,w,32,2,2,"F");
+  const Wt=[255,255,255];
+  const optW=(l,on,xx,yy2)=>{ doc.setDrawColor(255,255,255); doc.setLineWidth(.25); doc.rect(xx,yy2-2.4,2.6,2.6); if(on){doc.setFillColor(...OR); doc.rect(xx+.5,yy2-1.9,1.6,1.6,"F");} font(6.6,"normal",Wt); doc.text(T(l),xx+3.6,yy2); return xx+3.6+doc.getTextWidth(T(l))+3; };
+  const lineW=(label,v,xx,yy2,ww)=>{ font(6.6,"normal",Wt); doc.text(label,xx,yy2); const lw=doc.getTextWidth(label)+1.5; doc.setDrawColor(200,210,222); doc.setLineWidth(.2); doc.line(xx+lw,yy2+.6,xx+ww,yy2+.6); if(v){ font(7.2,"bold",Wt); doc.text(doc.splitTextToSize(T(v),ww-lw-1)[0],xx+lw+.5,yy2-.4);} };
+  font(8,"bold",Wt); doc.text("AVIS DU MÉDECIN",M+3,y+6);
+  lineW("Dr",f.dr,M+3,y+12,58); lineW("le",dfr(f.consultLe),M+64,y+12,w-67);
+  font(6.6,"bold",Wt); doc.text("Q-AAP",M+3,y+18); x=optW("Apte",f.qaap==="Apte",M+14,y+18); optW("Avis requis",f.qaap==="Avis requis",x,y+18);
+  font(6.6,"bold",Wt); doc.text("Contre-indication à l'activité physique",M+3,y+23.5);
+  x=optW("Aucune",f.ci==="Aucune",M+3,y+29); x=optW("Partielle",f.ci==="Partielle",x,y+29); optW("Totale temporaire",f.ci==="Totale temporaire",x,y+29);
+  y+=39; font(6.8,"bold",TXT); y=areaF("À éviter",f.aEviter,M,y,w,2)+5;
+  font(6.8); doc.text("Réévaluation le",M,y+3); doc.setDrawColor(...LN); doc.line(M,y+9.6,M+38,y+9.6); val(dfr(f.medReeval),M+1,y+8.6);
+  doc.setLineDashPattern([1,1],0); doc.setDrawColor(...GR); doc.roundedRect(M+44,y-3,w-44,16,2,2); doc.setLineDashPattern([],0);
+  font(6.2,"normal",GR); doc.text("Signature et cachet du médecin",M+47,y+1);
+
+  /* 3 résultats */
+  page("Mes résultats",3);
+  const res=S("resultats").per;
+  y=ptable(23,"Mesure",[{t:"Santé",r:[["pi","Poids (kg) / IMC","","poidsimc"],["tourTaille","Tour de taille","(cm)"],["ta","Tension artérielle","(mmHg)"]]},
+     {t:"Condition physique · test au choix",r:res[1].r.map(r=>r[0]==="niveauCP"?["niveauCP","Niveau global","(F / M / B)"]:r)}],5.6);
+  font(6,"normal",GR); doc.text("F faible · M moyen · B bon",M,y+5);
+
+  /* 4 habitudes de vie */
+  page("Mes habitudes de vie",4); y=ptable(23,"Indicateur",[{t:"",r:[["minSem","Minutes actives","/ semaine"],["assis","Temps assis","(h / jour)"],["fruits","Fruits et légumes","(port. / jour)"],["sommeil","Sommeil","(h / nuit)"],["stress","Stress ressenti","(0–10)"],["tabacAlcool","Tabac / alcool","(oui / non)"]]}],8);
+  font(6,"normal",GR); doc.text(["Objectif : au moins 150 minutes actives par semaine.","Stress : 0 aucun, 10 maximal."],M,y+5);
+
+  /* 5 bilan & orientation */
+  page("Bilan & orientation",5); y=23; doc.setFillColor(...BOX); doc.roundedRect(M,y,w,40,2,2,"F");
+  font(8.5,"bold",NAVY); doc.text("SYNTHÈSE DE L'ÉVALUATION",M+3,y+7);
+  lineF("Points forts",f.pointsForts,M+3,y+14,w-6); lineF("À améliorer",f.aAmeliorer,M+3,y+20.5,w-6);
+  areaF("Recommandations",f.reco,M+3,y+27,w-6,2);
+  y+=48; font(7.5,"bold",RUST); doc.text("MES OBJECTIFS",M,y); y+=7;
+  [[f.obj1,f.obj1d],[f.obj2,f.obj2d],[f.obj3,f.obj3d]].forEach(([o,d],i)=>{
+    doc.setFillColor(...RUST); doc.circle(M+2.3,y-1,2.3,"F"); font(7,"bold",[255,255,255]); doc.text(String(i+1),M+2.3,y+.2,{align:"center"});
+    doc.setDrawColor(...LN); doc.setLineWidth(.2); doc.line(M+7,y+.6,M+57,y+.6); val(o,M+7.5,y-.4,49); font(6.5,"normal",GR); doc.text("pour le",M+60,y);
+    doc.line(M+70,y+.6,W-M,y+.6); val(dfr(d),M+70.5,y-.4); y+=7.5; });
+  y+=3; font(7.5,"bold",RUST); doc.text("PROFESSIONNEL APA",M,y); y+=7;
+  font(6.8,"bold",TXT); doc.text("Niveau",M,y); x=M+12; ["Débutant","Intermédiaire","Confirmé"].forEach(o=>x=opt(o,f.apaNiveau===o,x,y)); y+=7;
+  lineF("Intensité cible : Borg",f.apaBorg?f.apaBorg+" /10":"",M,y,46); lineF("FC",f.apaFc,M+48,y,w-48); y+=7;
+  font(6.8,"bold",TXT); lineF("Prochain RDV",dfr(f.rdv),M,y,50); lineF("Visa",f.visa,M+53,y,w-53);
+
+  /* 6 programme */
+  page("Mon programme d'APA",6); y=24; lineF("Établi le",dfr(f.progLe),M,y,44); lineF("À revoir le",dfr(f.progRevoir),M+46,y,w-46); y+=7;
+  PROG.forEach((c,i)=>{ font(7,"bold",RUST); doc.text(T(c.toUpperCase()),M,y); y+=5; lineF("Exemple",f[`pg${i}ex`],M,y,w); y+=5.5;
+    lineF("Intensité",f[`pg${i}int`],M,y,28); lineF("Durée",f[`pg${i}dur`],M+30,y,28); lineF("Fréq.",f[`pg${i}freq`],M+60,y,w-60); y+=2.5;
+    doc.setDrawColor(...LN); doc.line(M,y,W-M,y); y+=5; });
+
+  /* 7 suivi mensuel (vierge) */
+  page("Mon suivi mensuel",7); font(6.6,"normal",GR); doc.text("Une ligne par mois (moyennes). AP = activité physique.",M,24); y=28;
+  const mc=[["Mois",9],["AP min/sem",17],["Séances nb",17],["Sommeil h",17],["Stress 0–10",15],["Poids kg",14]];
+  doc.setFillColor(...NAVY); doc.roundedRect(M,y,w,8,1,1,"F"); x=M; font(5.8,"bold",[255,255,255]);
+  mc.forEach(([l,cw])=>{ doc.text(doc.splitTextToSize(l,cw-1),x+cw/2,y+3.3,{align:"center"}); x+=cw; }); y+=8;
+  for(let r=0;r<12;r++){ font(6.6,"bold",TXT); doc.text(String(r+1),M+4.5,y+r*8.6+5.5,{align:"center"}); doc.setDrawColor(...LN); doc.setLineWidth(.15); doc.line(M,y+(r+1)*8.6,W-M,y+(r+1)*8.6); }
+  x=M; mc.slice(0,-1).forEach(([,cw])=>{ x+=cw; doc.line(x,y,x,y+12*8.6); });
+
+  /* 8 mes bonnes habitudes (dos) */
+  page(); doc.setFillColor(...NAVY); doc.rect(0,0,W,H,"F");
+  font(15,"bold",[255,255,255]); doc.text("MES BONNES HABITUDES",M,17);
+  y=27; HABITS.forEach((t,i)=>{ font(9,"bold",OR); doc.text("0"+(i+1),M,y+.8); font(6.6,"normal",[230,236,242]); const ls=doc.splitTextToSize(t,76); doc.text(ls,M+11,y); y+=ls.length*3.3+3.6; });
+  y+=1; doc.setDrawColor(90,110,135); doc.setLineWidth(.2); doc.line(M,y,W-M,y); y+=6;
+  doc.setFillColor(255,255,255); doc.roundedRect(M,y,17,16,2,2,"F"); try{ doc.addImage(LOGO_MSJE,"JPEG",M+1.5,y+1,14,14); }catch{}
+  font(6.6,"bold",[255,255,255]); doc.text(doc.splitTextToSize("Ministère des Sports, de la Jeunesse et de l'Emploi",66),M+21,y+3); font(6.3,"bold",OR); doc.text("MSJE / DGSL / DST",M+21,y+10.5);
+  y+=21; doc.setFillColor(255,255,255); doc.roundedRect(M,y,w,18,2,2,"F"); try{ doc.addImage(LOGO_SPT,"JPEG",W/2-16,y+1.5,32,15); }catch{}
+  font(6.2,"normal",[180,195,212]); doc.text(doc.splitTextToSize("Ce carnet ne remplace pas un avis médical. Douleur dans la poitrine, malaise ou essoufflement anormal : arrêtez l'effort et appelez les secours.",w),M,y+26);
+
+  return doc.output("blob");
+}
+
+/* ---------- list ---------- */
+const hasP = (x,pp) => !!(x.p && x.p[pp] && Object.entries(x.p[pp]).some(([k,v])=>k!=="date" && v!=="" && v!=null));
+function renderList(){
+  const q=$("search").value.trim().toLowerCase();
+  const sc=scoped();
+  const items=sc.filter(x=>!q||[x.f?.nom,x.f?.code,x.f?.contact,x.f?.email,evalName(x.owner)].join(" ").toLowerCase().includes(q));
+  const el=$("plist"); el.replaceChildren();
+  $("topsub").textContent = list.length?`${sc.length} participant${sc.length>1?"s":""}${$("evalfilter").value?($("evalfilter").value===myId?" dans vos carnets":" pour cet évaluateur"):" pour l'ensemble des évaluateurs"}.`:"Saisie des évaluations et remise du carnet au participant.";
+  if(!items.length){ const e=document.createElement("p"); e.className="empty"; e.textContent=sc.length?"Aucun participant ne correspond à cette recherche.":"Aucun participant pour l'instant. Cliquez sur « Nouveau participant » pour ouvrir un premier carnet."; el.append(e); return; }
+  items.forEach(x=>{
+    const b=document.createElement("button"); b.className="pitem"; b.type="button";
+    const who=document.createElement("span"); who.className="who"; who.textContent=x.f?.nom||"(sans nom)";
+    { const by=document.createElement("span"); by.className="by"; by.textContent="  · "+(x.owner===myId?"vous":evalName(x.owner)); who.append(by); }
+    const code=document.createElement("span"); code.className="code"; code.textContent=[x.f?.code||(x._pending?"code attribué à l'envoi":""),x.f?.contact,x.updatedAt?"modifié le "+new Date(x.updatedAt).toLocaleDateString("fr-FR"):""].filter(Boolean).join(" · ");
+    if(x._pending){ const pd=document.createElement("span"); pd.className="pend"; pd.textContent="À envoyer · "; code.prepend(pd); }
+    const chips=document.createElement("span"); chips.className="chips";
+    PERIODS.forEach(pp=>{ const c=document.createElement("span"); const has=hasP(x,pp); c.className="chip"+(has?" on":""); c.textContent=PLABEL[pp]; c.title=has?"Évaluation saisie":"Pas encore saisie"; chips.append(c); });
+    if(selMode){ const ck=document.createElement("input"); ck.type="checkbox"; ck.className="ck"; ck.tabIndex=-1; ck.checked=selected.has(x.id); who.prepend(ck); if(ck.checked) b.classList.add("sel"); }
+    b.append(who,chips,code); b.onclick=()=>{ if(selMode){ selected.has(x.id)?selected.delete(x.id):selected.add(x.id); updSel(); renderList(); } else openFiche(x); }; el.append(b);
+  });
+}
+$("search").addEventListener("input",renderList);
+
+/* ---------- suppression en lot (administrateur) ---------- */
+let selMode=false; const selected=new Set();
+function updSel(){ const n=selected.size; $("sel-count").textContent = n+" carnet"+(n>1?"s":"")+" sélectionné"+(n>1?"s":""); $("sel-del").disabled=!n; $("sel-confirm").hidden=true; }
+function setSel(on){ selMode=on; selected.clear(); $("selbar").hidden=!on; $("sel-toggle").hidden=!isAdmin||on; $("new").disabled=on; updSel(); renderList(); }
+$("sel-toggle").onclick=()=>setSel(true);
+$("sel-cancel").onclick=()=>setSel(false);
+$("sel-all").onclick=()=>{ const q=$("search").value.trim().toLowerCase(); scoped().filter(x=>!q||[x.f?.nom,x.f?.code,x.f?.contact,x.f?.email,evalName(x.owner)].join(" ").toLowerCase().includes(q)).forEach(x=>selected.add(x.id)); updSel(); renderList(); };
+$("sel-del").onclick=()=>{ const n=selected.size; $("sel-confirm-txt").textContent=`Supprimer définitivement ${n} carnet${n>1?"s":""} ? Cette action est irréversible. Pensez à exporter la base (CSV) avant si besoin.`; $("sel-confirm").hidden=false; };
+$("sel-no").onclick=()=>{ $("sel-confirm").hidden=true; };
+$("sel-yes").onclick=async()=>{
+  const ids=[...selected]; const m=$("list-msg");
+  if(!navigator.onLine || offlineMode){ m.className="msg err"; m.textContent="Suppression impossible hors ligne : réessayez une fois connecté."; return; } $("sel-yes").disabled=true; m.className="msg"; m.textContent="Suppression…";
+  const {data,error}=await db.from("participants").delete().in("id",ids).select("id");
+  $("sel-yes").disabled=false;
+  if(error){ m.className="msg err"; m.textContent="Suppression impossible : "+error.message; return; }
+  const done=new Set((data||[]).map(r=>r.id)); list=list.filter(x=>!done.has(x.id));
+  m.className="msg ok"; m.textContent=`${done.size} carnet${done.size>1?"s":""} supprimé${done.size>1?"s":""}.`+(done.size<ids.length?` ${ids.length-done.size} n'ont pas pu l'être.`:"");
+  setSel(false);
+};
+
+/* ---------- effacer une évaluation (administrateur) ---------- */
+$("clear-per").onclick=()=>{ $("clr-txt").textContent=`Effacer toutes les valeurs de l'évaluation ${PLABEL[period]} de ce carnet ? Les autres évaluations et le profil sont conservés.`; $("clr-confirm").hidden=false; };
+$("clr-no").onclick=()=>{ $("clr-confirm").hidden=true; };
+$("clr-yes").onclick=async()=>{ cur.p[period]={}; fillPeriod(); $("clr-confirm").hidden=true; dirty=true; await save(); $("foot-msg").className="msg ok"; $("foot-msg").textContent=`Évaluation ${PLABEL[period]} effacée.`; };
+$("csv").onclick=async()=>{
+  const m=$("list-msg"); m.className="msg"; const L=scoped();
+  if(!L.length){ m.textContent="Rien à exporter pour l'instant."; return; }
+  if(!downloads){ m.textContent="Téléchargement indisponible ici."; m.className="msg err"; return; }
+  const fk=new Set(), pk=new Set(); L.forEach(x=>{ Object.keys(x.f||{}).forEach(k=>fk.add(k)); PERIODS.forEach(pp=>Object.keys(x.p?.[pp]||{}).forEach(k=>pk.add(k))); });
+  const F=[...fk], Pk=[...pk]; const cols=["evaluateur",...F, ...PERIODS.flatMap(pp=>Pk.map(k=>pp+"_"+k))];
+  const e=v=>`"${String(Array.isArray(v)?v.join(", "):v??"").replace(/"/g,'""')}"`;
+  const rows=[cols.join(";"),...L.map(x=>[e(evalName(x.owner)),...F.map(k=>e(x.f?.[k])),...PERIODS.flatMap(pp=>Pk.map(k=>e(x.p?.[pp]?.[k])))].join(";"))];
+  try{ saveFile(`base_sport_sante_${new Date().toISOString().slice(0,10)}.csv`, new Blob(["\uFEFF"+rows.join("\r\n")],{type:"text/csv;charset=utf-8"})); m.textContent="Export téléchargé."; m.className="msg ok"; }
+  catch(err){ m.textContent=err&&err.code==="declined"?"Export annulé.":"Export impossible ici."; m.className="msg err"; }
+};
+
+/* ---------- dashboard ---------- */
+const mean = a => a.length ? a.reduce((s,v)=>s+v,0)/a.length : null;
+const pct = (n,d) => d ? Math.round(100*n/d) : 0;
+const fmt1 = v => v===null ? "–" : (Math.round(v*10)/10).toLocaleString("fr-FR");
+function barRow(label, n, d, tip){
+  const p = pct(n,d);
+  return `<div class="bar" title="${esc(tip||`${label} : ${n} sur ${d}`)}"><span class="lab">${esc(label)}</span><span class="track"><span class="fillb" style="width:${p}%"></span></span><span class="num">${d?p+" %":"–"} <span class="n" style="color:var(--muted);font-size:.72rem">(${n})</span></span></div>`;
+}
+function stackRow(label, counts, total){
+  const segs = counts.map((c,i)=> c?`<span class="seg${i+1}" style="width:${pct(c,total)}%;height:100%" title="${esc(["Faible","Moyen","Bon"][i])} : ${c} (${pct(c,total)} %)"></span>`:"").join("");
+  return `<div class="bar"><span class="lab">${esc(label)}</span><span class="track">${segs}</span><span class="num">n = ${total}</span></div>`;
+}
+function renderDash(){
+  const L = scoped(), N = L.length, D = $("v-dash");
+  if(!N){ D.innerHTML = (isAdmin?'<div class="panel" id="evmgr"></div>':'') + `<div class="panel"><h3>Pas encore de données</h3><p class="cap">Le tableau de bord se remplit dès que les premiers carnets sont saisis : nombre d'évaluations, part des participants actifs, corpulence, condition physique${isAdmin?", activité de chaque évaluateur":""}.</p></div>`; if(isAdmin) renderEvMgr(); return; }
+  const nP = PERIODS.map(pp=>L.filter(x=>hasP(x,pp)).length);
+  const avisReq = L.filter(x=>x.f?.qaap==="Avis requis").length;
+  const ci = L.filter(x=>x.f?.ci && x.f.ci!=="Aucune").length;
+  // actifs
+  const act = PERIODS.map(pp=>{ const v=L.map(x=>{ const pv=x.p?.[pp]||{}; if(pv.niveauAct) return pv.niveauAct; const m=num(pv.minSem); return m===null?null:(m>=150?"A":"I"); }).filter(Boolean); return [v.filter(a=>a==="A").length, v.length]; });
+  // moyennes
+  const MEAS=[["poids","Poids (kg)"],["imc","IMC (kg/m²)"],["tourTaille","Tour de taille (cm)"],["minSem","Minutes actives / sem"],["assis","Temps assis (h/j)"],["fruits","Fruits et légumes (port./j)"],["sommeil","Sommeil (h/nuit)"],["stress","Stress (0–10)"]];
+  const rowsM = MEAS.map(([k,l])=>{ const cells=PERIODS.map(pp=>{ const v=L.map(x=>num(x.p?.[pp]?.[k])).filter(v=>v!==null); return `<td>${fmt1(mean(v))} <span class="n">n=${v.length}</span></td>`; }).join(""); return `<tr><td>${esc(l)}</td>${cells}</tr>`; }).join("");
+  // IMC T0
+  const imc0 = L.map(x=>{ const v=num(x.p?.T0?.imc); if(v!==null) return v; const w=num(x.p?.T0?.poids), h=num(x.f?.taille); return w&&h? w/((h/100)**2):null; }).filter(v=>v!==null);
+  const cls=[["Maigreur (< 18,5)",v=>v<18.5],["Normal (18,5–24,9)",v=>v>=18.5&&v<25],["Surpoids (25–29,9)",v=>v>=25&&v<30],["Obésité (30 et plus)",v=>v>=30]];
+  // condition physique
+  const cp = PERIODS.map(pp=>{ const v=L.map(x=>x.p?.[pp]?.niveauCP).filter(Boolean); return [["F","M","B"].map(o=>v.filter(a=>a===o).length), v.length]; });
+  const sexe=[["Femmes",L.filter(x=>x.f?.sexe==="F").length],["Hommes",L.filter(x=>x.f?.sexe==="H").length]];
+  const tab0=L.map(x=>x.p?.T0?.tabacAlcool).filter(Boolean);
+  const sexKnown=sexe[0][1]+sexe[1][1];
+  // évaluateurs
+  let evalTable="";
+  if(!$("evalfilter").value){
+    const ids=[...new Set(list.map(x=>x.owner))];
+    evalTable = `<div class="panel"><h3>Activité par évaluateur</h3><div class="tscroll"><table class="dt"><thead><tr><th>Évaluateur</th><th>Participants</th><th>T0</th><th>6 mois</th><th>12 mois</th><th>Dernière saisie</th></tr></thead><tbody>${
+      ids.map(id=>{ const P=list.filter(x=>x.owner===id); const last=Math.max(...P.map(x=>x.updatedAt||0));
+        return `<tr><td>${esc(evalName(id))}</td><td>${P.length}</td>${PERIODS.map(pp=>`<td>${P.filter(x=>hasP(x,pp)).length}</td>`).join("")}<td>${last?new Date(last).toLocaleDateString("fr-FR"):"–"}</td></tr>`; }).join("")
+    }</tbody></table></div></div>`;
+  }
+  D.innerHTML = `
+  <div class="kpis">
+    <div class="kpi"><span class="v">${N}</span><span class="k">Participants</span></div>
+    <div class="kpi"><span class="v">${nP[0]}</span><span class="k">Évaluations T0</span></div>
+    <div class="kpi"><span class="v">${nP[1]}</span><span class="k">Réévaluations 6 mois</span></div>
+    <div class="kpi"><span class="v">${nP[2]}</span><span class="k">Réévaluations 12 mois</span></div>
+    <div class="kpi${avisReq?" alert":""}"><span class="v">${avisReq}</span><span class="k">Avis médical requis (Q-AAP)</span></div>
+    <div class="kpi${ci?" alert":""}"><span class="v">${ci}</span><span class="k">Avec contre-indication</span></div>
+  </div>
+  ${evalTable}
+  ${isAdmin?'<div class="panel" id="evmgr"></div>':''}
+  <div class="dgrid">
+    <div class="panel"><h3>Participants actifs</h3><p class="cap">Part des participants à 150 min d'activité par semaine ou plus, parmi ceux renseignés.</p>
+      <div class="bars">${PERIODS.map((pp,i)=>barRow(PLABEL[pp],act[i][0],act[i][1],`${PLABEL[pp]} : ${act[i][0]} actifs sur ${act[i][1]}`)).join("")}</div></div>
+    <div class="panel"><h3>Suivi des réévaluations</h3><p class="cap">Part des participants évalués à T0 qui ont été revus.</p>
+      <div class="bars">${barRow("6 mois",L.filter(x=>hasP(x,"T0")&&hasP(x,"M6")).length,nP[0])}${barRow("12 mois",L.filter(x=>hasP(x,"T0")&&hasP(x,"M12")).length,nP[0])}</div></div>
+    <div class="panel"><h3>Corpulence à T0</h3><p class="cap">Classes d'IMC de l'OMS, ${imc0.length} participant${imc0.length>1?"s":""} mesuré${imc0.length>1?"s":""}.</p>
+      <div class="bars">${cls.map(([l,fn])=>barRow(l,imc0.filter(fn).length,imc0.length)).join("")}</div></div>
+    <div class="panel"><h3>Condition physique</h3>
+      <div class="legend"><span><i class="seg1"></i>Faible</span><span><i class="seg2"></i>Moyen</span><span><i class="seg3"></i>Bon</span></div>
+      <div class="bars">${PERIODS.map((pp,i)=>stackRow(PLABEL[pp],cp[i][0],cp[i][1])).join("")}</div></div>
+    <div class="panel"><h3>Profil des participants</h3>
+      <div class="bars">${sexe.map(([l,n])=>barRow(l,n,sexKnown)).join("")}${barRow("Tabac / alcool (T0)",tab0.filter(v=>v==="oui").length,tab0.length)}</div></div>
+    <div class="panel"><h3>Q-AAP et avis médical</h3>
+      <div class="bars">${barRow("Apte",L.filter(x=>x.f?.qaap==="Apte").length,N)}${barRow("Avis requis",avisReq,N)}${barRow("Contre-indic.",ci,N)}</div></div>
+  </div>
+  <div class="panel"><h3>Moyennes par évaluation</h3><p class="cap">n = nombre de participants renseignés pour chaque mesure.</p>
+    <div class="tscroll"><table class="dt"><thead><tr><th>Mesure</th><th>T0</th><th>6 mois</th><th>12 mois</th></tr></thead><tbody>${rowsM}</tbody></table></div></div>`;
+  if(isAdmin) renderEvMgr();
+}
+
+/* ---------- data ---------- */
+const toLocal = r => ({_exists:true, id:r.id, owner:r.owner, updatedBy:r.updated_by, f:r.f||{}, p:r.p||{}, createdAt:Date.parse(r.created_at), updatedAt:Date.parse(r.updated_at)});
+function upsertLocal(){
+  const x = JSON.parse(JSON.stringify({...cur, updatedAt:Date.now(), updatedBy:myId}));
+  const i = list.findIndex(y=>y.id===x.id); if(i>=0) list[i]=x; else list.unshift(x);
+  list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)); renderList();
+}
+function rebuild(){ renderList(); if(tab==="dash" && !$("v-dash").hidden) renderDash(); }
+function overlayOutbox(){
+  const ob=outbox();
+  Object.entries(ob).forEach(([id,e])=>{ const i=list.findIndex(x=>x.id===id); const base=i>=0?list[i]:{id, owner:e.owner, createdAt:Date.parse(e.row.updated_at)};
+    const x={...base, f:e.row.f, p:e.row.p, updatedAt:Date.parse(e.row.updated_at), updatedBy:myId, _pending:true, _exists: i>=0 ? base._exists : false};
+    if(i>=0) list[i]=x; else list.unshift(x); });
+  list.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+}
+async function loadAll(){
+  const m=$("list-msg");
+  let data=null, error=null;
+  if(navigator.onLine){ try{ ({data,error} = await db.from("participants").select("*").order("updated_at",{ascending:false}).limit(5000)); }catch(e){ error=e; } }
+  else error={message:"offline"};
+  if(error){
+    const c=LS.get(kCache());
+    if(isNetErr(error) && c){ offlineMode=true; list=c.list||[]; profiles=c.profiles||[]; profiles.forEach(p=>names[p.id]=p.nom||p.email);
+      m.className="msg"; m.textContent=`Hors ligne : carnets enregistrés sur cet appareil le ${new Date(c.at).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"})}. Vos saisies seront envoyées à la reconnexion.`; }
+    else { m.textContent= isNetErr(error) ? "Hors ligne et aucun carnet encore enregistré sur cet appareil. Connectez-vous à internet une première fois." : "Les carnets n'ont pas pu être chargés. Vérifiez votre connexion puis cliquez sur Actualiser."; m.className="msg err"; updateNetUI(); return; }
+  } else { offlineMode=false; m.textContent=""; list = data.map(toLocal); }
+  overlayOutbox();
+  {
+    if(!offlineMode){ const r = await db.from("profiles").select("*").order("created_at").then(x=>x,e=>({error:e}));
+      if(!r.error){ profiles=r.data; profiles.forEach(p=>names[p.id]=p.nom||p.email); } }
+    const sel=$("evalfilter"), keep=sel.value;
+    sel.innerHTML='<option value="">Tous les évaluateurs</option>'+`<option value="${esc(myId)}">Mes carnets</option>`+profiles.filter(p=>p.actif&&p.id!==myId&&(p.niveau==="evaluateur"||p.role==="admin")).map(p=>`<option value="${esc(p.id)}">${esc(p.nom||p.email)}</option>`).join("");
+    sel.value = firstLoad ? myId : keep; firstLoad=false;
+  }
+  if(!offlineMode) saveCache();
+  updateNetUI(); rebuild();
+}
+function renderEvMgr(target){
+  const el=$(target||"evmgr"); if(!el) return;
+  const pend = profiles.filter(p=>!p.actif).length;
+  const terr=p=> p.niveau==="drsje" ? (regById(p.region_id)?.nom||"région ?") : (p.niveau==="dpsje"||p.niveau==="promoteur") ? (provById(p.province_id)?.nom||"province ?") : p.niveau==="national"?"national":"";
+  el.innerHTML = `<h3>Comptes${pend?` · <span style="color:var(--orange)">${pend} en attente</span>`:""}</h3>
+    <p class="cap">Vérifiez le profil et le territoire demandés avant d'activer un compte. Un compte désactivé ne peut plus rien voir ni saisir. Les promoteurs et les directions ne voient jamais les carnets santé.</p>
+    <div>${profiles.map(p=>`<div class="evrow"><span class="who"><b>${esc(p.nom||"(sans nom)")}</b><br><span class="em">${esc(p.email||"")} · ${esc(NIV_LABEL[p.niveau]||p.niveau)}${terr(p)?" · "+esc(terr(p)):""}${p.role==="admin"?" · administrateur":""}</span></span>
+      <span class="pill ${p.actif?"on":"off"}">${p.actif?"Actif":"En attente"}</span>
+      ${p.id===myId?'<span class="em">vous</span>':`<span class="row-actions"><button class="btn" data-act="${esc(p.id)}" data-v="${p.actif?0:1}">${p.actif?"Désactiver":"Activer"}</button><button class="btn" data-adm="${esc(p.id)}" data-v="${p.role==="admin"?0:1}">${p.role==="admin"?"Retirer admin":"Rendre admin"}</button>
+        <select data-niv="${esc(p.id)}">${Object.entries(NIV_LABEL).map(([k,l])=>`<option value="${k}" ${p.niveau===k?"selected":""}>${esc(l)}</option>`).join("")}</select>
+        <select data-terr="${esc(p.id)}"><option value="">Territoire…</option><optgroup label="Provinces">${PROV.map(v=>`<option value="p${v.id}" ${p.province_id===v.id&&p.niveau!=="drsje"?"selected":""}>${esc(v.nom)}</option>`).join("")}</optgroup><optgroup label="Régions">${REG.map(r=>`<option value="r${r.id}" ${p.niveau==="drsje"&&p.region_id===r.id?"selected":""}>${esc(r.nom)}</option>`).join("")}</optgroup></select>
+        <button class="btn" data-savenv="${esc(p.id)}">Enregistrer le profil</button></span>`}
+    </div>`).join("")}</div><span class="msg" id="ev-msg"></span>`;
+  el.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>updProfile(b.dataset.act,{actif:b.dataset.v==="1"}));
+  el.querySelectorAll("[data-adm]").forEach(b=>b.onclick=()=>updProfile(b.dataset.adm,{role:b.dataset.v==="1"?"admin":"evaluateur"}));
+  el.querySelectorAll("[data-savenv]").forEach(b=>b.onclick=()=>{ const id=b.dataset.savenv, nv=el.querySelector(`[data-niv="${id}"]`).value, t=el.querySelector(`[data-terr="${id}"]`).value;
+    const patch={niveau:nv}; if(t.startsWith("p")){ const pv=provById(+t.slice(1)); patch.province_id=pv.id; patch.region_id=pv.region_id; } else if(t.startsWith("r")){ patch.region_id=+t.slice(1); patch.province_id=null; } else { patch.province_id=null; patch.region_id=null; }
+    const m=$("ev-msg"); if((nv==="promoteur"||nv==="dpsje") && !patch.province_id){ m.className="msg err"; m.textContent="Choisissez une province pour ce profil."; return; } if(nv==="drsje" && !patch.region_id){ m.className="msg err"; m.textContent="Choisissez une région pour un agent DRSJE."; return; }
+    updProfile(id,patch); });
+}
+async function updProfile(id, patch){
+  if(!navigator.onLine || offlineMode){ const m=$("ev-msg"); if(m){ m.textContent="Hors ligne : la gestion des comptes demande une connexion."; m.className="msg err"; } return; }
+  const {error} = await db.from("profiles").update(patch).eq("id",id);
+  if(error){ const m=$("ev-msg"); if(m){ m.textContent="Modification impossible."; m.className="msg err"; } return; }
+  const p=profiles.find(x=>x.id===id); Object.assign(p,patch);
+  if(mod==="comptes"){ await loadProfiles(); renderEvMgr("evmgr2"); const m=$("ev-msg"); if(m){ m.className="msg ok"; m.textContent="Profil mis à jour ✓"; } }
+  else { await loadAll(); renderDash(); }
+}
+
+/* ---------- auth ---------- */
+let signup=false;
+const APPV=["v-list","v-dash","v-fiche","v-result","v-pending","navrow","evalfilter-row","top-actions","footbar","v-spt","v-comptes","modbar","v-reset"];
+function showHome(note){ APPV.forEach(id=>$(id).hidden=true); $("v-auth").hidden=true; $("apptop").hidden=true; $("v-home").hidden=false;
+  const m=$("home-msg"); m.className=note?"msg err":"msg"; m.textContent=note||""; window.scrollTo(0,0); }
+function showAuth(asSignup){ APPV.forEach(id=>$(id).hidden=true); $("v-home").hidden=true; $("apptop").hidden=false; $("v-auth").hidden=false;
+  if(asSignup!==undefined && !!asSignup!==signup) $("auth-switch").onclick(); fillAuthTerr(); }
+$("home-login").onclick=()=>showAuth(false); $("home-signup").onclick=()=>showAuth(true); $("auth-home").onclick=()=>showHome();
+$("auth-switch").onclick=()=>{ signup=!signup;
+  $("auth-title").textContent=signup?"Créer un compte":"Connexion";
+  $("auth-sub").textContent=signup?"Après création, l'administrateur doit activer votre compte.":"Connectez-vous avec le compte que vous avez créé.";
+  $("auth-nom-row").hidden=!signup; $("auth-niv-row").hidden=!signup; authNivChange(); $("auth-go").textContent=signup?"Créer mon compte":"Se connecter";
+  $("auth-switch-txt").textContent=signup?"Déjà un compte ?":"Pas encore de compte ?"; $("auth-switch").textContent=signup?"Se connecter":"Créer un compte";
+  $("auth-pass").autocomplete=signup?"new-password":"current-password"; $("auth-msg").textContent=""; $("auth-forgot-row").hidden=signup; };
+$("auth-forgot").onclick=async()=>{ const m=$("auth-msg"), email=$("auth-email").value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){ m.className="msg err"; m.textContent="Saisissez d'abord votre adresse email ci-dessus, puis touchez « Mot de passe oublié ? »."; $("auth-email").focus(); return; }
+  m.className="msg"; m.textContent="Envoi du lien…";
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  if(error){ m.className="msg err"; m.textContent=/rate|security purposes/i.test(error.message)?"Trop de demandes : réessayez dans quelques minutes.":"Envoi impossible : "+error.message; return; }
+  m.className="msg ok"; m.textContent="Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé. Ouvrez-le sur cet appareil (pensez à regarder dans les spams)."; };
+$("reset-form").addEventListener("submit",async e=>{ e.preventDefault(); const m=$("reset-msg"), a=$("reset-p1").value, b=$("reset-p2").value; m.className="msg err";
+  if(a.length<6){ m.textContent="Le mot de passe doit faire au moins 6 caractères."; return; }
+  if(a!==b){ m.textContent="Les deux mots de passe ne sont pas identiques."; return; }
+  $("reset-go").disabled=true; m.className="msg"; m.textContent="Enregistrement…";
+  const {error}=await sb.auth.updateUser({password:a}); $("reset-go").disabled=false;
+  if(error){ m.className="msg err"; m.textContent=/different from the old/i.test(error.message)?"Choisissez un mot de passe différent de l'ancien.":/expired|invalid|session/i.test(error.message)?"Le lien a expiré. Redemandez un lien depuis « Mot de passe oublié ? ».":"Erreur : "+error.message; return; }
+  history.replaceState(null,"",location.pathname); $("v-reset").hidden=true; start(); });
+$("auth-form").addEventListener("submit", async e=>{
+  e.preventDefault(); const m=$("auth-msg"); m.className="msg err";
+  const email=$("auth-email").value.trim(), pass=$("auth-pass").value, nom=$("auth-nom").value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){ m.textContent="Saisissez une adresse email valide."; return; }
+  if(pass.length<6){ m.textContent="Le mot de passe doit faire au moins 6 caractères."; return; }
+  if(signup && !nom){ m.textContent="Indiquez votre nom et prénom."; return; }
+  const niv=$("auth-niv").value, apv=$("auth-prov").value, arg=$("auth-reg").value;
+  if(signup && (niv==="promoteur"||niv==="dpsje") && !apv){ m.textContent="Choisissez votre province."; return; }
+  if(signup && niv==="drsje" && !arg){ m.textContent="Choisissez votre région."; return; }
+  $("auth-go").disabled=true; m.className="msg"; m.textContent=signup?"Création du compte…":"Connexion…";
+  const r = signup ? await sb.auth.signUp({email,password:pass,options:{data:{nom, niveau:niv, province_id:(niv==="promoteur"||niv==="dpsje")?apv:"", region_id:niv==="drsje"?arg:""}}}) : await sb.auth.signInWithPassword({email,password:pass});
+  $("auth-go").disabled=false;
+  if(r.error){ m.className="msg err";
+    m.textContent = /invalid login/i.test(r.error.message)?"Email ou mot de passe incorrect."
+      : /already registered/i.test(r.error.message)?"Un compte existe déjà avec cet email : connectez-vous."
+      : /confirm/i.test(r.error.message)?"Confirmez d'abord votre email (lien reçu par email)."
+      : "Erreur : "+r.error.message; return; }
+  if(signup && !r.data.session){ m.className="msg ok"; m.textContent="Compte créé. Ouvrez le lien de confirmation reçu par email, puis connectez-vous."; return; }
+  m.textContent=""; start();
+});
+let logoutArmed=false;
+function authNivChange(){
+  const v=$("auth-niv").value;
+  $("auth-prov-row").hidden = !signup || !(v==="promoteur"||v==="dpsje");
+  $("auth-reg-row").hidden = !signup || v!=="drsje";
+}
+$("auth-niv").onchange=authNivChange;
+async function fillAuthTerr(){ await loadTerritoires(); $("auth-prov").innerHTML='<option value="">Choisir…</option>'+PROV.map(p=>`<option value="${p.id}">${esc(p.nom)} (${esc(regById(p.region_id)?.nom||"")})</option>`).join(""); $("auth-reg").innerHTML='<option value="">Choisir…</option>'+REG.map(r=>`<option value="${r.id}">${esc(r.nom)}</option>`).join(""); }
+async function logout(){
+  const n=myId?Object.keys(outbox()).length+sptQueue().length:0;
+  if(n && !logoutArmed){ logoutArmed=true; const m=$("list-msg"); m.className="msg err";
+    m.textContent=`${n} carnet${n>1?"s":""} pas encore envoyé${n>1?"s":""}. Reconnectez-vous à internet avant de vous déconnecter, sinon ${n>1?"ils seront perdus":"il sera perdu"}. Touchez à nouveau Déconnexion pour confirmer.`; setTimeout(()=>logoutArmed=false,15000); return; }
+  logoutArmed=false;
+  try{ await sb.auth.signOut({scope:"local"}); }catch{}
+  if(myId){ LS.del(kCache()); LS.del(kOut()); LS.del(kSpt()); LS.del(kSptQ()); LS.del("cs:me:"+myId); } LS.del("cs:lastuser");
+  sites=[]; pres=[]; trans=[]; sptLoaded=false; sptTab=null; sptView=null; $("modbar").hidden=true; $("v-spt").hidden=true; $("v-comptes").hidden=true;
+  list=[]; profiles=[]; cur=null; myId=null; offlineMode=false; updateNetUI(); showHome(); }
+$("logout").onclick=logout; $("pending-logout").onclick=logout; $("pending-retry").onclick=()=>start();
+$("refresh").onclick=async()=>{ if(mod==="spt"){ await sptSync(); await sptLoad(); renderSpt(); return; } if(mod==="comptes"){ await loadProfiles(); renderEvMgr("evmgr2"); return; } await sync(); await loadAll(); };
+
+/* ---------- boot ---------- */
+async function start(){
+  let session=null; try{ ({data:{session}} = await sb.auth.getSession()); }catch{}
+  if(RECOVERY && !start.recovered){ start.recovered=true; APPV.forEach(id=>$(id).hidden=true); $("v-home").hidden=true; $("v-auth").hidden=true; $("apptop").hidden=false; $("v-reset").hidden=false; $("reset-p1").focus(); return; }
+  if(AUTH_ERR && !session && !start.recovered){ start.recovered=true; history.replaceState(null,"",location.pathname); showAuth(false); $("auth-msg").className="msg err"; $("auth-msg").textContent="Ce lien de réinitialisation a expiré ou a déjà servi. Redemandez-en un ci-dessous."; return; }
+  const last=LS.get("cs:lastuser");
+  let prof=null;
+  if(!session){
+    const c = last && LS.get("cs:cache:"+last.id);
+    const me0 = last && LS.get("cs:me:"+last.id);
+    if(!navigator.onLine && me0){ myId=last.id; offlineMode=true; prof=me0; }
+    else { showHome(navigator.onLine?"":"Hors ligne : la première connexion demande internet."); return; }
+  } else {
+    myId = session.user.id; LS.set("cs:lastuser",{id:myId});
+    const r = await db.from("profiles").select("*").eq("id",myId).maybeSingle().then(x=>x,e=>({error:e}));
+    if(r.error && isNetErr(r.error)){ const me0=LS.get("cs:me:"+myId); if(me0){ offlineMode=true; prof=me0; } }
+    else { prof=r.data; if(prof && prof.actif) LS.set("cs:me:"+myId, prof); }
+  }
+  myName = prof?.nom || session?.user?.email || ""; isAdmin = prof?.role==="admin" && prof?.actif;
+  $("v-auth").hidden=true; $("v-home").hidden=true; $("apptop").hidden=false;
+  if(!prof || !prof.actif){ ["v-list","v-dash","navrow","evalfilter-row","top-actions"].forEach(id=>$(id).hidden=true); $("v-pending").hidden=false; return; }
+  $("v-pending").hidden=true;
+  niveau = prof.niveau||"evaluateur"; meProv = prof.province_id||null; meReg = prof.region_id||null;
+  await loadTerritoires();
+  const terr = niveau==="promoteur"||niveau==="dpsje" ? " · "+(provById(meProv)?.nom||"") : niveau==="drsje" ? " · région "+(regById(meReg)?.nom||"") : "";
+  $("role").innerHTML = isAdmin?`<b>${esc(myName)}</b> · administrateur` : niveau==="evaluateur" ? `<b>${esc(myName)}</b> · évaluateur · vous voyez les carnets de toute l'équipe` : `<b>${esc(myName)}</b> · ${esc(NIV_LABEL[niveau])}${esc(terr)}`;
+  $("sel-toggle").hidden=!isAdmin;
+  $("topsub").textContent = niveau==="evaluateur"||isAdmin ? $("topsub").textContent : "Fiches de fréquentation des sites Sport pour tous et remontée des données.";
+  if(isAdmin){ $("modbar").hidden=false; setMod("carnets"); }
+  else if(niveau==="evaluateur"){ view("list"); await loadAll(); sync(); }
+  else { mod="spt"; await sptSync(); showSpt(); await sptLoad(); renderSpt(); }
+}
+/* ================== SPORT POUR TOUS : circuit de remontée des données ================== */
+/* Site (promoteur) → DPSJE (province) → DRSJE (région) → SSEC / DST (national) */
+let niveau="evaluateur", meProv=null, meReg=null, mod="carnets";
+let REG=[], PROV=[], sites=[], pres=[], trans=[], sptLoaded=false, sptOffline=false;
+let sptTab=null, sptView=null, sptEdit=null;
+const NOW=new Date();
+const F={ annee: NOW.getFullYear(), mois: NOW.getMonth()+1, trim: Math.ceil((NOW.getMonth()+1)/3), sem: NOW.getMonth()<6?1:2, reg:"", prov:"", site:"", statut:"", per:"annee" };
+const NIV_LABEL={evaluateur:"Évaluateur Sport Santé",promoteur:"Promoteur sportif",dpsje:"DPSJE (provincial)",drsje:"DRSJE (régional)",national:"SSEC / DST (national)"};
+const DAYS=[["lun","Lundi"],["mar","Mardi"],["mer","Mercredi"],["jeu","Jeudi"],["ven","Vendredi"],["sam","Samedi"],["dim","Dimanche"]];
+const MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const STATUT={soumis:"Soumise",valide:"Validée",a_corriger:"À corriger"};
+const provById=id=>PROV.find(p=>p.id===+id), regById=id=>REG.find(r=>r.id===+id);
+const siteById=id=>sites.find(x=>x.id===id);
+const siteProv=s=>provById(s&&s.province_id), siteReg=s=>{ const p=siteProv(s); return p&&regById(p.region_id); };
+const isCtrl=()=>isAdmin||niveau==="dpsje";
+const canSeeAll=()=>isAdmin||niveau==="national";
+
+/* ---- semaines ISO ---- */
+function isoWeek(d){ const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); const day=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-day); const y=t.getUTCFullYear(); return [y, Math.ceil(((t-Date.UTC(y,0,1))/864e5+1)/7)]; }
+function weekMonday(y,w){ const s=new Date(Date.UTC(y,0,4)); const day=s.getUTCDay()||7; s.setUTCDate(s.getUTCDate()-day+1+(w-1)*7); return s; }
+const weeksInYear=y=>isoWeek(new Date(y,11,28))[1];
+const fmtDM=d=>d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",timeZone:"UTC"});
+function weekLabel(y,w){ const m=weekMonday(y,w), e=new Date(m); e.setUTCDate(e.getUTCDate()+6); return `Semaine ${w} · du ${fmtDM(m)} au ${fmtDM(e)}`; }
+function weekMonth(y,w){ const t=weekMonday(y,w); t.setUTCDate(t.getUTCDate()+3); return t.getUTCMonth()+1; }
+/* semaines attendues sur une liste de mois, jusqu'à la semaine en cours, et après la création du site */
+function expectedWeeks(y, months, since){
+  const [cy,cw]=isoWeek(NOW); const out=[];
+  for(let w=1; w<=weeksInYear(y); w++){
+    if(y>cy || (y===cy && w>cw)) break;
+    if(!months.includes(weekMonth(y,w))) continue;
+    if(since){ const [sy,sw]=isoWeek(new Date(since)); if(y<sy || (y===sy && w<sw)) continue; }
+    out.push(w);
+  }
+  return out;
+}
+const monthsOf=(per)=> per==="mois"?[F.mois] : per==="trim"?[1,2,3].map(i=>(F.trim-1)*3+i) : per==="sem"?[1,2,3,4,5,6].map(i=>(F.sem-1)*6+i) : [1,2,3,4,5,6,7,8,9,10,11,12];
+const perLabel=(per)=> per==="mois"?`${MOIS[F.mois-1]} ${F.annee}` : per==="trim"?`${F.trim}${F.trim===1?"er":"e"} trimestre ${F.annee}` : per==="sem"?`${F.sem}${F.sem===1?"er":"nd"} semestre ${F.annee}` : `année ${F.annee}`;
+const perCode=(per)=> per==="mois"?`${F.annee}-${String(F.mois).padStart(2,"0")}` : per==="trim"?`${F.annee}-T${F.trim}` : `${F.annee}-S${F.sem}`;
+
+/* ---- territoire visible ---- */
+function visibleSites(){
+  return sites.filter(s=>{
+    if(F.site && s.id!==F.site) return false;
+    const p=siteProv(s); if(F.prov && (!p || p.id!==+F.prov)) return false;
+    if(F.reg && (!p || p.region_id!==+F.reg)) return false;
+    return true; });
+}
+function presIn(siteIds, months, extra){ const set=new Set(siteIds); return pres.filter(p=>set.has(p.site_id) && p.annee===F.annee && months.includes(p.mois) && (!extra||extra(p))); }
+function agg(list){ const a={n:list.length,f:0,h:0,t:0,valide:0,soumis:0,a_corriger:0}; list.forEach(p=>{ a.f+=p.total_f; a.h+=p.total_h; a.t+=p.total; a[p.statut]++; }); a.pf=a.t?Math.round(100*a.f/a.t):0; return a; }
+function completude(siteList, months){ let att=0, rec=0; siteList.filter(s=>s.actif).forEach(s=>{ const ws=expectedWeeks(F.annee, months, s.created_at); att+=ws.length; const got=new Set(pres.filter(p=>p.site_id===s.id&&p.annee===F.annee&&months.includes(p.mois)).map(p=>p.semaine)); rec+=ws.filter(w=>got.has(w)).length; }); return {att, rec, pct: att?Math.round(100*rec/att):0}; }
+/* anomalies d'une fiche */
+function anomalies(p){
+  const out=[]; if(p.total===0) out.push("Aucun pratiquant déclaré");
+  DAYS.forEach(([k,l])=>{ const d=p.jours&&p.jours[k]||{}; ["f","h"].forEach(sx=>{ const v=+d[sx]||0; if(v>300) out.push(`${l} : ${v} ${sx==="f"?"femmes":"hommes"} (valeur très élevée)`); }); });
+  const others=pres.filter(x=>x.site_id===p.site_id && x.id!==p.id && x.total>0).map(x=>x.total).sort((a,b)=>a-b);
+  if(others.length>=3){ const med=others[Math.floor(others.length/2)]; if(p.total>3*med) out.push(`Fréquentation inhabituelle : ${p.total} contre ${med} habituellement`); if(p.total>0 && p.total<med/3) out.push(`Fréquentation très basse : ${p.total} contre ${med} habituellement`); }
+  return out;
+}
+function terrLabel(){ if(niveau==="promoteur") return ""; if(niveau==="dpsje") return "Province "+(provById(meProv)?.nom||"?"); if(niveau==="drsje") return "Région "+(regById(meReg)?.nom||"?"); return "Burkina Faso"; }
+
+/* ---- chargement + cache hors ligne ---- */
+const kSpt=()=>"cs:spt:"+myId, kSptQ=()=>"cs:sptq:"+myId;
+const sptQueue=()=>(myId&&LS.get(kSptQ()))||[];
+async function loadTerritoires(){
+  if(REG.length) return;
+  const c=LS.get("cs:terr"); if(c){ REG=c.REG; PROV=c.PROV; }
+  if(!navigator.onLine) return;
+  const [r,p]=await Promise.all([db.from("regions").select("*").order("nom"), db.from("provinces").select("*").order("nom")]).catch(()=>[{},{}]);
+  if(r&&r.data&&p&&p.data){ REG=r.data; PROV=p.data; LS.set("cs:terr",{REG,PROV}); }
+}
+async function sptLoad(){
+  await loadTerritoires();
+  let ok=false;
+  if(navigator.onLine){
+    const y=F.annee;
+    const [a,b,c]=await Promise.all([
+      db.from("sites").select("*").order("nom").limit(10000),
+      db.from("presences").select("*").gte("annee",y-1).lte("annee",y+1).limit(50000),
+      db.from("transmissions").select("*").like("periode",y+"-%").limit(10000)]).then(x=>x,e=>[{error:e},{error:e},{error:e}]);
+    if(!a.error && !b.error && !c.error){ sites=a.data; pres=b.data; trans=c.data; ok=true; sptOffline=false; LS.set(kSpt(),{sites,pres,trans,at:Date.now()}); }
+  }
+  if(!ok){ const c=LS.get(kSpt()); if(c){ sites=c.sites; pres=c.pres; trans=c.trans; sptOffline=true; } }
+  // fiches en attente d'envoi, par-dessus
+  sptQueue().forEach(q=>{ const i=pres.findIndex(p=>p.site_id===q.row.site_id&&p.annee===q.row.annee&&p.semaine===q.row.semaine); const x={...q.row, _pending:true, statut:"soumis", ...totalsOf(q.row.jours)}; if(i>=0) pres[i]={...pres[i],...x}; else pres.push({id:"local-"+q.row.site_id+"-"+q.row.annee+"-"+q.row.semaine,...x}); });
+  sptLoaded=true;
+}
+function totalsOf(j){ let f=0,h=0; DAYS.forEach(([k])=>{ f+=Math.max(0,+(j[k]&&j[k].f)||0); h+=Math.max(0,+(j[k]&&j[k].h)||0); }); return {total_f:f,total_h:h,total:f+h}; }
+async function sptSync(){
+  const q=sptQueue(); if(!q.length || !navigator.onLine) return 0;
+  let sent=0; const rest=[];
+  for(const e of q){
+    const r=await db.from("presences").upsert(e.row,{onConflict:"site_id,annee,semaine"}).select("id").then(x=>x,er=>({error:er}));
+    if(r.error){ if(isNetErr(r.error)){ rest.push(e); continue; } rest.push({...e, err:r.error.message}); continue; }
+    sent++;
+  }
+  LS.set(kSptQ(),rest); return sent;
+}
+
+/* ---- navigation du module ---- */
+function sptTabs(){
+  if(niveau==="promoteur") return [["fiches","Mes fiches"],["sites","Mon site"],["rapport","Rapport mensuel"]];
+  if(niveau==="dpsje") return [["fiches","Contrôle des fiches"],["rapport","Rapport trimestriel"],["tb","Tableau de bord"],["sites","Sites"]];
+  if(niveau==="drsje") return [["tb","Tableau de bord"],["rapport","Rapport semestriel"],["fiches","Fiches"],["sites","Sites"]];
+  return [["tb","TB-NAT"],["trans","Transmissions"],["fiches","Fiches"],["sites","Sites"]];
+}
+function showSpt(){
+  ["v-list","v-dash","v-fiche","v-result","evalfilter-row","top-actions","footbar","v-comptes"].forEach(id=>$(id).hidden=true);
+  $("navrow").hidden=false; $("navrow").querySelector(".tabs").hidden=true; $("v-spt").hidden=false;
+  if(!sptTab) sptTab=sptTabs()[0][0];
+  renderSpt();
+}
+function sel(id,label,opts,val,attrs=""){ return `<label class="fld"><span class="l">${esc(label)}</span><select id="${id}" ${attrs}>${opts.map(([v,l])=>`<option value="${esc(v)}" ${String(v)===String(val)?"selected":""}>${esc(l)}</option>`).join("")}</select></label>`; }
+function filterBar(per, opt={}){
+  const parts=[];
+  const years=[F.annee-1,F.annee,F.annee+1].filter(y=>y<=NOW.getFullYear()+1);
+  parts.push(sel("f-annee","Année",years.map(y=>[y,y]),F.annee));
+  if(per==="mois"||per==="choix") parts.push(sel("f-mois","Mois",[["0","Tous les mois"],...MOIS.map((m,i)=>[i+1,m])],per==="choix"?F.moisSel||0:F.mois));
+  if(per==="trim") parts.push(sel("f-trim","Trimestre",[[1,"1er trimestre"],[2,"2e trimestre"],[3,"3e trimestre"],[4,"4e trimestre"]],F.trim));
+  if(per==="sem") parts.push(sel("f-sem","Semestre",[[1,"1er semestre"],[2,"2nd semestre"]],F.sem));
+  if(per==="tb") parts.push(sel("f-per","Période",[["annee","Année entière"],["sem","Semestre"],["trim","Trimestre"],["mois","Mois"]],F.per));
+  if(per==="tb" && F.per==="mois") parts.push(sel("f-mois","Mois",MOIS.map((m,i)=>[i+1,m]),F.mois));
+  if(per==="tb" && F.per==="trim") parts.push(sel("f-trim","Trimestre",[[1,"1er"],[2,"2e"],[3,"3e"],[4,"4e"]],F.trim));
+  if(per==="tb" && F.per==="sem") parts.push(sel("f-sem","Semestre",[[1,"1er"],[2,"2nd"]],F.sem));
+  if(!opt.noTerr){
+    if(canSeeAll()) parts.push(sel("f-reg","Région",[["","Toutes les régions"],...REG.map(r=>[r.id,r.nom])],F.reg));
+    if(canSeeAll()||niveau==="drsje"){ const pl=PROV.filter(p=>(!F.reg||p.region_id===+F.reg) && (niveau!=="drsje"||p.region_id===meReg)); parts.push(sel("f-prov","Province",[["","Toutes les provinces"],...pl.map(p=>[p.id,p.nom])],F.prov)); }
+    if(opt.site!==false){ const sl=sites.filter(s=>{ const p=siteProv(s); return (!F.prov||(p&&p.id===+F.prov)) && (!F.reg||(p&&p.region_id===+F.reg)); }); if(sl.length>1||niveau!=="promoteur") parts.push(sel("f-site","Site",[["","Tous les sites"],...sl.map(s=>[s.id,s.nom])],F.site)); }
+  }
+  if(opt.statut) parts.push(sel("f-statut","Statut",[["","Tous"],["soumis","Soumises"],["a_corriger","À corriger"],["valide","Validées"],["anomalie","Avec anomalie"]],F.statut));
+  return `<div class="filters">${parts.join("")}</div>`;
+}
+function bindFilters(){
+  const on=(id,fn)=>{ const e=$(id); if(e) e.onchange=()=>{ fn(e.value); renderSpt(); }; };
+  on("f-annee",v=>{ const y=+v; if(Math.abs(y-F.annee)>=1 && navigator.onLine){ F.annee=y; sptLoad().then(renderSpt); } else F.annee=y; });
+  on("f-mois",v=>{ if(sptTab==="fiches") F.moisSel=+v; else F.mois=+v; });
+  on("f-trim",v=>F.trim=+v); on("f-sem",v=>F.sem=+v); on("f-per",v=>F.per=v);
+  on("f-reg",v=>{ F.reg=v; F.prov=""; F.site=""; }); on("f-prov",v=>{ F.prov=v; F.site=""; }); on("f-site",v=>F.site=v); on("f-statut",v=>F.statut=v);
+}
+function renderSpt(){
+  const V=$("v-spt");
+  const head=`<div class="subnav" role="tablist">${sptTabs().map(([k,l])=>`<button data-st="${k}" aria-selected="${sptTab===k&&!sptView}">${esc(l)}</button>`).join("")}</div>`
+    + (sptOffline?`<p class="msg">Hors ligne : données enregistrées sur cet appareil. Vos fiches seront envoyées à la reconnexion.</p>`:"")
+    + (sptQueue().length?`<p class="msg pend">${sptQueue().length} fiche${sptQueue().length>1?"s":""} en attente d'envoi.</p>`:"");
+  let body="";
+  if(sptView==="pres") body=presForm();
+  else if(sptView==="site") body=siteForm();
+  else if(sptTab==="fiches") body=tabFiches();
+  else if(sptTab==="sites") body=tabSites();
+  else if(sptTab==="rapport") body = niveau==="promoteur"?tabRMens(): niveau==="dpsje"?tabRTrim(): niveau==="drsje"?tabRSem(): tabRSem();
+  else if(sptTab==="tb") body=tabTB();
+  else if(sptTab==="trans") body=tabTrans();
+  V.innerHTML=head+body;
+  V.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ sptTab=b.dataset.st; sptView=null; renderSpt(); window.scrollTo(0,0); });
+  bindFilters(); bindSpt();
+}
+
+/* ---- onglet : fiches hebdomadaires ---- */
+function tabFiches(){
+  const months = F.moisSel ? [F.moisSel] : monthsOf("annee");
+  let list=presIn(visibleSites().map(s=>s.id), months);
+  if(F.statut==="anomalie") list=list.filter(p=>anomalies(p).length); else if(F.statut) list=list.filter(p=>p.statut===F.statut);
+  list.sort((a,b)=>b.annee-a.annee||b.semaine-a.semaine);
+  const canNew = niveau==="promoteur" ? sites.some(s=>s.promoteur_id===myId) : isCtrl();
+  const nb={soumis:0,a_corriger:0,valide:0}; list.forEach(p=>nb[p.statut]++);
+  const intro = niveau==="promoteur" ? (sites.some(s=>s.promoteur_id===myId) ? "" : `<div class="panel"><h3>Commencez par enregistrer votre site</h3><p class="cap">La fiche hebdomadaire est rattachée à votre site de pratique. Ouvrez l'onglet « Mon site » et décrivez-le une fois pour toutes.</p><div class="row-actions"><button class="btn primary" data-act="newsite">Enregistrer mon site</button></div></div>`)
+    : niveau==="dpsje" ? `<p class="cap" style="margin:0">À contrôler : <b>${nb.soumis}</b> soumise${nb.soumis>1?"s":""} · ${nb.a_corriger} à corriger · ${nb.valide} validée${nb.valide>1?"s":""}.</p>` : "";
+  return `${intro}<div class="row-actions">${canNew?`<button class="btn primary" data-act="newpres">+ Nouvelle fiche de la semaine</button>`:""}<button class="btn" data-act="csvpres">Exporter (CSV)</button><span class="msg" id="spt-msg"></span></div>
+  ${filterBar("choix",{statut:true, site: niveau!=="promoteur" || sites.length>1})}
+  <div class="plist">${list.length?list.map(p=>{ const s=siteById(p.site_id), an=anomalies(p);
+    return `<button class="prow2" data-pres="${esc(p.id)}"><span class="t">${esc(s?.nom||"Site")} · S${p.semaine}</span><span class="s">${esc(weekLabel(p.annee,p.semaine).replace(/^Semaine \d+ · /,""))} · ${esc(siteProv(s)?.nom||"")}${an.length?` · <span style="color:var(--danger)">⚠ ${an.length} anomalie${an.length>1?"s":""}</span>`:""}${p._pending?` · <span class="pend">à envoyer</span>`:""}</span>
+      <span class="r"><span class="st ${p.statut}">${STATUT[p.statut]}</span><span class="s">F ${p.total_f} · H ${p.total_h} · <b>${p.total}</b></span></span></button>`; }).join("")
+    :`<p class="empty">Aucune fiche pour cette sélection.${canNew?" Touchez « Nouvelle fiche de la semaine » pour saisir la fréquentation.":""}</p>`}</div>`;
+}
+function presForm(){
+  const p=sptEdit, s=siteById(p.site_id), mine = s && s.promoteur_id===myId;
+  const editable = (mine && p.statut!=="valide") || isCtrl() || !p.id;
+  const mySites = niveau==="promoteur" ? sites.filter(x=>x.promoteur_id===myId) : visibleSites();
+  const wk=[]; for(let w=1; w<=weeksInYear(p.annee); w++) wk.push([w, weekLabel(p.annee,w)]);
+  const dis = editable?"":"disabled";
+  const t=totalsOf(p.jours||{});
+  const an=p.id?anomalies({...p,...t}):[];
+  return `<div class="row-actions"><button class="btn" data-act="back">← Retour aux fiches</button>${p.id?`<span class="st ${p.statut}">${STATUT[p.statut]}</span>`:""}</div>
+  <div class="panel"><h3>Fiche hebdomadaire de fréquentation</h3>
+    ${s?`<p class="cap">${esc(s.promoteur_nom||"")}${s.profession?" · "+esc(s.profession):""}${s.telephone?" · "+esc(s.telephone):""} — ${esc(s.localite||"")} · ${esc(siteProv(s)?.nom||"")} · ${esc(s.activites||"")}</p>`:""}
+    <div class="filters">
+      ${sel("pf-site","Site de pratique",mySites.map(x=>[x.id,x.nom]),p.site_id,(p.id||!editable)?"disabled":"")}
+      ${sel("pf-annee","Année",[[NOW.getFullYear()-1,NOW.getFullYear()-1],[NOW.getFullYear(),NOW.getFullYear()]],p.annee,(p.id||!editable)?"disabled":"")}
+      ${sel("pf-sem","Numéro de semaine",wk,p.semaine,(p.id||!editable)?"disabled":"")}
+      ${sel("pf-mois","Mois",MOIS.map((m,i)=>[i+1,m]),p.mois,dis)}
+    </div>
+    <p class="cap">Nombre moyen de pratiquants par sexe selon le jour de la semaine.</p>
+    <div class="tscroll"><table class="dt grid7"><thead><tr><th>Jour</th><th>Femmes</th><th>Hommes</th><th>Total</th></tr></thead><tbody>
+      ${DAYS.map(([k,l])=>{ const d=(p.jours||{})[k]||{}; const tt=(+d.f||0)+(+d.h||0); return `<tr><td class="l">${l}</td><td><input inputmode="numeric" data-day="${k}" data-sx="f" value="${d.f??""}" ${dis}></td><td><input inputmode="numeric" data-day="${k}" data-sx="h" value="${d.h??""}" ${dis}></td><td id="tt-${k}">${tt||""}</td></tr>`; }).join("")}
+      <tr><td class="l"><b>Total de la semaine</b></td><td id="tt-f"><b>${t.total_f}</b></td><td id="tt-h"><b>${t.total_h}</b></td><td id="tt-t"><b>${t.total}</b></td></tr>
+    </tbody></table></div>
+    <label class="fld"><span class="l">Observations</span><textarea id="pf-obs" ${dis}>${esc(p.observations||"")}</textarea></label>
+    ${an.length?`<div class="warn"><b>Points à vérifier :</b><ul class="warnlist">${an.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></div>`:""}
+    ${p.commentaire?`<div class="warn"><b>Commentaire du contrôle :</b> ${esc(p.commentaire)}</div>`:""}
+    <div class="row-actions">${editable?`<button class="btn primary" data-act="savepres">${p.id?"Enregistrer les modifications":"Envoyer la fiche"}</button>`:""}
+      ${p.id && (isCtrl() || (mine && p.statut!=="valide"))?`<button class="btn danger" data-act="delpres">Supprimer</button>`:""}<span class="msg" id="pf-msg"></span></div>
+    ${!editable && mine?`<p class="cap">Fiche validée par la DPSJE : elle ne peut plus être modifiée. Contactez votre DPSJE en cas d'erreur.</p>`:""}
+  </div>
+  ${p.id && isCtrl()?`<div class="panel"><h3>Contrôle qualité</h3>
+    <label class="fld"><span class="l">Commentaire (obligatoire pour « À corriger »)</span><textarea id="pf-com">${esc(p.commentaire||"")}</textarea></label>
+    <div class="row-actions"><button class="btn primary" data-act="valid">Valider la fiche</button><button class="btn" data-act="corr">Renvoyer pour correction</button><span class="msg" id="pc-msg"></span></div></div>`:""}`;
+}
+function readPresForm(){
+  const p=sptEdit; const j={};
+  document.querySelectorAll("[data-day]").forEach(i=>{ const v=i.value.trim(); (j[i.dataset.day] ||= {})[i.dataset.sx] = v===""?"":String(Math.max(0,parseInt(v,10)||0)); });
+  const g=id=>$(id)?.value;
+  return { site_id: p.id?p.site_id:g("pf-site"), annee: p.id?p.annee:+g("pf-annee"), semaine: p.id?p.semaine:+g("pf-sem"), mois:+g("pf-mois"), jours:j, observations:$("pf-obs").value.trim()||null };
+}
+async function savePres(){
+  const m=$("pf-msg"); const row=readPresForm();
+  if(!row.site_id){ m.className="msg err"; m.textContent="Choisissez le site."; return; }
+  const t=totalsOf(row.jours); if(!t.total && !confirmZero){ confirmZero=true; m.className="msg err"; m.textContent="Aucun pratiquant saisi. Touchez à nouveau pour envoyer une fiche à zéro."; return; }
+  confirmZero=false; m.className="msg"; m.textContent="Envoi…";
+  if(!navigator.onLine){
+    const q=sptQueue().filter(e=>!(e.row.site_id===row.site_id&&e.row.annee===row.annee&&e.row.semaine===row.semaine)); q.push({row}); LS.set(kSptQ(),q);
+    await sptLoad(); m.className="msg ok"; m.textContent="Fiche enregistrée sur cet appareil : elle sera envoyée au retour de la connexion."; sptView=null; renderSpt(); return;
+  }
+  const r = sptEdit.id ? await db.from("presences").update(row).eq("id",sptEdit.id).select("*") : await db.from("presences").insert(row).select("*");
+  if(r.error){ m.className="msg err"; m.textContent = r.error.code==="23505" ? "Une fiche existe déjà pour ce site et cette semaine : ouvrez-la dans la liste pour la compléter." : /validée/.test(r.error.message) ? "Fiche déjà validée : seule la DPSJE peut la modifier." : isNetErr(r.error) ? "Pas de connexion : réessayez." : "Envoi impossible : "+r.error.message; return; }
+  if(!r.data||!r.data.length){ m.className="msg err"; m.textContent="Envoi refusé : vérifiez que votre compte est activé pour ce site."; return; }
+  await sptLoad(); sptEdit=pres.find(x=>x.id===r.data[0].id)||r.data[0]; sptView="pres"; renderSpt(); const m2=$("pf-msg"); if(m2){ m2.className="msg ok"; m2.textContent= niveau==="promoteur" ? "Fiche envoyée à la DPSJE ✓" : "Fiche enregistrée ✓"; }
+}
+let confirmZero=false, confirmDel=false;
+async function ctrlPres(statut){
+  const m=$("pc-msg"); const com=$("pf-com").value.trim();
+  if(statut==="a_corriger" && !com){ m.className="msg err"; m.textContent="Indiquez au promoteur ce qu'il doit corriger."; return; }
+  if(!navigator.onLine){ m.className="msg err"; m.textContent="Le contrôle demande une connexion."; return; }
+  const r=await db.from("presences").update({statut, commentaire:com||null}).eq("id",sptEdit.id).select("*");
+  if(r.error||!r.data?.length){ m.className="msg err"; m.textContent="Modification impossible."; return; }
+  await sptLoad(); sptEdit=pres.find(x=>x.id===sptEdit.id); renderSpt(); const m2=$("pc-msg"); if(m2){ m2.className="msg ok"; m2.textContent= statut==="valide"?"Fiche validée ✓":"Fiche renvoyée au promoteur ✓"; }
+}
+
+/* ---- onglet : sites (F-SITE) ---- */
+function tabSites(){
+  const sl=visibleSites(); const canNew = niveau==="promoteur" || isCtrl();
+  return `<div class="row-actions">${canNew?`<button class="btn primary" data-act="newsite">+ Ajouter un site</button>`:""}<span class="cap">${sl.length} site${sl.length>1?"s":""}</span></div>
+  ${niveau==="promoteur"?"":filterBar("none",{site:false})}
+  <div class="plist">${sl.length?sl.map(s=>{ const n=pres.filter(p=>p.site_id===s.id&&p.annee===F.annee); const last=n.sort((a,b)=>b.semaine-a.semaine)[0];
+    return `<button class="prow2" data-site="${esc(s.id)}"><span class="t">${esc(s.nom)}${s.actif?"":" · inactif"}</span><span class="s">${esc(s.localite||"")} · ${esc(siteProv(s)?.nom||"")} (${esc(siteReg(s)?.nom||"")}) · ${esc(s.activites||"")}</span>
+      <span class="r"><span class="s">${esc(s.promoteur_nom||"")}</span><span class="s">${n.length} fiche${n.length>1?"s":""} en ${F.annee}${last?" · dernière S"+last.semaine:""}</span></span></button>`; }).join("")
+    :`<p class="empty">Aucun site enregistré.${canNew?" Touchez « Ajouter un site ».":""}</p>`}</div>`;
+}
+function siteForm(){
+  const s=sptEdit; const editable = !s.id || s.promoteur_id===myId || isCtrl();
+  const dis=editable?"":"disabled";
+  const provOpts = niveau==="dpsje" ? PROV.filter(p=>p.id===meProv) : niveau==="drsje" ? PROV.filter(p=>p.region_id===meReg) : PROV;
+  const inp=(id,l,v,t="text")=>`<label class="fld"><span class="l">${l}</span><input id="${id}" type="${t}" value="${esc(v??"")}" ${dis}></label>`;
+  return `<div class="row-actions"><button class="btn" data-act="back">← Retour</button></div>
+  <div class="panel"><h3>Fiche du site de pratique</h3><p class="cap">Ces informations s'affichent en tête de chaque fiche hebdomadaire.</p>
+  <div class="body" style="padding:0">
+    ${inp("sf-nom","Site de pratique *",s.nom)}
+    ${sel("sf-prov","Province *",[["","Choisir…"],...provOpts.map(p=>[p.id,`${p.nom} (${regById(p.region_id)?.nom||""})`])],s.province_id||"",dis)}
+    ${inp("sf-loc","Localité",s.localite)}
+    ${inp("sf-act","Activité pratiquée",s.activites)}
+    <div class="subh">Promoteur</div>
+    ${inp("sf-pnom","Nom et prénom",s.promoteur_nom)}
+    ${inp("sf-prof","Profession",s.profession)}
+    ${sel("sf-sexe","Sexe",[["",""],["F","Femme"],["H","Homme"]],s.sexe||"",dis)}
+    ${inp("sf-age","Âge",s.age,"number")}
+    ${inp("sf-tel","Téléphone",s.telephone,"tel")}
+    <label class="fld" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="sf-actif" ${s.actif!==false?"checked":""} ${dis} style="width:auto"> Site en activité</label>
+  </div>
+  <div class="row-actions">${editable?`<button class="btn primary" data-act="savesite">Enregistrer le site</button>`:""}${s.id&&isCtrl()?`<button class="btn danger" data-act="delsite">Supprimer le site</button>`:""}<span class="msg" id="sf-msg"></span></div></div>`;
+}
+async function saveSite(){
+  const m=$("sf-msg"); const g=id=>$(id).value.trim();
+  const row={ nom:g("sf-nom"), province_id:+g("sf-prov")||null, localite:g("sf-loc")||null, activites:g("sf-act")||null, promoteur_nom:g("sf-pnom")||null, profession:g("sf-prof")||null, sexe:g("sf-sexe")||null, age:+g("sf-age")||null, telephone:g("sf-tel")||null, actif:$("sf-actif").checked };
+  if(!row.nom||!row.province_id){ m.className="msg err"; m.textContent="Indiquez le nom du site et sa province."; return; }
+  if(!navigator.onLine){ m.className="msg err"; m.textContent="L'enregistrement d'un site demande une connexion."; return; }
+  const r = sptEdit.id ? await db.from("sites").update(row).eq("id",sptEdit.id).select("*") : await db.from("sites").insert(row).select("*");
+  if(r.error||!r.data?.length){ m.className="msg err"; m.textContent="Enregistrement impossible"+(r.error?" : "+r.error.message:" : vérifiez la province (elle doit être dans votre territoire)."); return; }
+  await sptLoad(); sptView=null; sptTab = niveau==="promoteur"?"fiches":"sites"; renderSpt(); const mm=$("spt-msg"); if(mm){ mm.className="msg ok"; mm.textContent="Site enregistré ✓"; }
+}
+
+/* ---- rapports ---- */
+function siteTable(siteList, months, withMens){
+  return `<div class="tscroll"><table class="dt"><thead><tr><th>Site</th><th>Fiches reçues</th><th>Validées</th><th>Femmes</th><th>Hommes</th><th>Total</th>${withMens?"<th>R-MENS</th>":""}</tr></thead><tbody>${siteList.map(s=>{
+    const L=presIn([s.id],months), a=agg(L), att=expectedWeeks(F.annee,months,s.created_at).length;
+    const mens = withMens ? months.filter(mo=>trans.some(t=>t.type==="R-MENS"&&t.site_id===s.id&&t.periode===`${F.annee}-${String(mo).padStart(2,"0")}`)).length : 0;
+    return `<tr><td>${esc(s.nom)}</td><td>${a.n} / ${att}</td><td>${a.valide}</td><td>${a.f}</td><td>${a.h}</td><td><b>${a.t}</b></td>${withMens?`<td>${mens} / ${months.length}</td>`:""}</tr>`; }).join("")||`<tr><td colspan="7">Aucun site.</td></tr>`}</tbody></table></div>`;
+}
+function kpis(siteList, months){
+  const L=presIn(siteList.map(s=>s.id),months), a=agg(L), c=completude(siteList,months);
+  return `<div class="kpis"><div class="kpi"><span class="v">${siteList.filter(s=>s.actif).length}</span><span class="k">Sites actifs</span></div>
+   <div class="kpi"><span class="v">${a.n}</span><span class="k">Fiches reçues (${c.pct} % des ${c.att} attendues)</span></div>
+   <div class="kpi"><span class="v">${a.t.toLocaleString("fr-FR")}</span><span class="k">Présences déclarées</span></div>
+   <div class="kpi"><span class="v">${a.pf} %</span><span class="k">Part de femmes</span></div>
+   <div class="kpi${a.soumis+a.a_corriger?" alert":""}"><span class="v">${a.soumis+a.a_corriger}</span><span class="k">Fiches non validées</span></div></div>`;
+}
+function transBox(t, label, canDo, act){
+  return `<div class="panel"><h3>${esc(label)}</h3>${t?`<p class="okline">Transmis le ${new Date(t.transmis_le).toLocaleDateString("fr-FR")}${t.commentaire?" · « "+esc(t.commentaire)+" »":""}. Vous pouvez le transmettre à nouveau pour le mettre à jour.</p>`:`<p class="cap">Pas encore transmis.</p>`}
+   ${canDo?`<label class="fld"><span class="l">Commentaire / observations du rapport</span><textarea id="tr-com">${esc(t?.commentaire||"")}</textarea></label>
+   <div class="row-actions"><button class="btn primary" data-act="${act}">${t?"Transmettre à nouveau":"Transmettre"}</button><button class="btn" data-act="csvrap">Exporter le rapport (CSV)</button><span class="msg" id="tr-msg"></span></div>`:""}</div>`;
+}
+async function transmit(row){
+  const m=$("tr-msg"); if(!navigator.onLine){ m.className="msg err"; m.textContent="La transmission demande une connexion."; return; }
+  row.commentaire=$("tr-com").value.trim()||null; row.transmis_le=new Date().toISOString();
+  const r=await db.from("transmissions").upsert(row,{onConflict:"type,periode,site_id,province_id,region_id"}).select("*");
+  if(r.error||!r.data?.length){ m.className="msg err"; m.textContent="Transmission impossible"+(r.error?" : "+r.error.message:""); return; }
+  await sptLoad(); renderSpt(); const m2=$("tr-msg"); if(m2){ m2.className="msg ok"; m2.textContent="Rapport transmis ✓"; }
+}
+function tabRMens(){
+  const my=sites.filter(s=>s.promoteur_id===myId); if(!F.site && my.length) F.site=my[0].id;
+  const s=siteById(F.site); if(!s) return `<p class="empty">Enregistrez d'abord votre site dans l'onglet « Mon site ».</p>`;
+  const months=[F.mois], L=presIn([s.id],months).sort((a,b)=>a.semaine-b.semaine), a=agg(L), ws=expectedWeeks(F.annee,months,s.created_at);
+  const got=new Map(L.map(p=>[p.semaine,p])); const t=trans.find(x=>x.type==="R-MENS"&&x.site_id===s.id&&x.periode===perCode("mois"));
+  return `${filterBar("mois",{noTerr:true})}${my.length>1?sel("f-site","Site",my.map(x=>[x.id,x.nom]),F.site):""}
+  <div class="panel"><h3>R-MENS · ${esc(s.nom)} · ${perLabel("mois")}</h3>
+   <div class="kpis"><div class="kpi"><span class="v">${L.length} / ${ws.length}</span><span class="k">Semaines déclarées</span></div><div class="kpi"><span class="v">${a.t}</span><span class="k">Présences (F ${a.f} · H ${a.h})</span></div><div class="kpi"><span class="v">${L.length?Math.round(a.t/L.length):0}</span><span class="k">Moyenne par semaine</span></div><div class="kpi"><span class="v">${a.pf} %</span><span class="k">Part de femmes</span></div></div>
+   <div class="tscroll"><table class="dt"><thead><tr><th>Semaine</th><th>Statut</th><th>Femmes</th><th>Hommes</th><th>Total</th></tr></thead><tbody>${ws.map(w=>{ const p=got.get(w); return `<tr><td class="l">${esc(weekLabel(F.annee,w))}</td><td>${p?`<span class="st ${p.statut}">${STATUT[p.statut]}</span>`:`<span class="st manque">Manquante</span>`}</td><td>${p?p.total_f:"–"}</td><td>${p?p.total_h:"–"}</td><td>${p?`<b>${p.total}</b>`:"–"}</td></tr>`; }).join("")||`<tr><td colspan="5">Aucune semaine écoulée dans ce mois.</td></tr>`}</tbody></table></div>
+   ${ws.length>L.length?`<p class="msg err">${ws.length-L.length} semaine${ws.length-L.length>1?"s":""} sans fiche : saisissez-les avant de transmettre.</p>`:""}</div>
+  ${transBox(t,"Transmission à la DPSJE",true,"tr-mens")}`;
+}
+function tabRTrim(){
+  const pid = niveau==="dpsje"?meProv:(+F.prov||null); const months=monthsOf("trim");
+  if(!pid) return `${filterBar("trim")}<p class="empty">Choisissez une province.</p>`;
+  const sl=sites.filter(s=>s.province_id===pid), L=presIn(sl.map(s=>s.id),months);
+  const anos=L.map(p=>[p,anomalies(p)]).filter(x=>x[1].length);
+  const manq=sl.filter(s=>s.actif).map(s=>{ const ws=expectedWeeks(F.annee,months,s.created_at); const got=new Set(L.filter(p=>p.site_id===s.id).map(p=>p.semaine)); return [s,ws.filter(w=>!got.has(w))]; }).filter(x=>x[1].length);
+  const t=trans.find(x=>x.type==="R-TRIM"&&x.province_id===pid&&x.periode===perCode("trim"));
+  return `${filterBar("trim",{site:false})}
+  <div class="panel"><h3>R-TRIM · Province ${esc(provById(pid)?.nom||"")} · ${perLabel("trim")}</h3>${kpis(sl,months)}${siteTable(sl,months,true)}</div>
+  <div class="panel"><h3>Signalement des anomalies</h3>${anos.length||manq.length?`<ul class="warnlist">${manq.map(([s,w])=>`<li><b>${esc(s.nom)}</b> : ${w.length} semaine${w.length>1?"s":""} sans fiche (S${w.join(", S")})</li>`).join("")}${anos.map(([p,a])=>`<li><b>${esc(siteById(p.site_id)?.nom||"")} S${p.semaine}</b> : ${esc(a.join(" ; "))}</li>`).join("")}</ul>`:`<p class="okline">Aucune anomalie détectée.</p>`}
+   ${L.some(p=>p.statut!=="valide")?`<p class="msg err">${L.filter(p=>p.statut!=="valide").length} fiche(s) pas encore validée(s) : contrôlez-les dans l'onglet « Contrôle des fiches ».</p>`:""}</div>
+  ${transBox(t,"Transmission à la DRSJE",isAdmin||niveau==="dpsje","tr-trim")}`;
+}
+function tabRSem(){
+  const rid = niveau==="drsje"?meReg:(+F.reg||null); const months=monthsOf("sem");
+  if(!rid) return `${filterBar("sem",{site:false})}<p class="empty">Choisissez une région.</p>`;
+  const pl=PROV.filter(p=>p.region_id===rid), trims=F.sem===1?[1,2]:[3,4];
+  const rows=pl.map(p=>{ const sl=sites.filter(s=>s.province_id===p.id), L=presIn(sl.map(s=>s.id),months), a=agg(L), c=completude(sl,months);
+    const tt=trims.filter(q=>trans.some(t=>t.type==="R-TRIM"&&t.province_id===p.id&&t.periode===`${F.annee}-T${q}`)).length; return {p,sl,a,c,tt}; });
+  const alerts=[];
+  rows.forEach(r=>{ if(!r.sl.length) alerts.push(`<b>${esc(r.p.nom)}</b> : aucun site enregistré`); else { if(r.tt<trims.length) alerts.push(`<b>${esc(r.p.nom)}</b> : ${trims.length-r.tt} rapport${trims.length-r.tt>1?"s":""} trimestriel${trims.length-r.tt>1?"s":""} non transmis`); if(r.c.att && r.c.pct<50) alerts.push(`<b>${esc(r.p.nom)}</b> : complétude faible (${r.c.pct} %)`); if(r.a.soumis+r.a.a_corriger) alerts.push(`<b>${esc(r.p.nom)}</b> : ${r.a.soumis+r.a.a_corriger} fiche(s) non validée(s)`); } });
+  const tot=agg(presIn(sites.filter(s=>pl.some(p=>p.id===s.province_id)).map(s=>s.id),months));
+  const t=trans.find(x=>x.type==="R-SEM"&&x.region_id===rid&&x.periode===perCode("sem"));
+  const max=Math.max(1,...rows.map(r=>r.a.t));
+  return `${filterBar("sem",{site:false})}
+  <div class="panel"><h3>Rapport semestriel · Région ${esc(regById(rid)?.nom||"")} · ${perLabel("sem")}</h3>${kpis(sites.filter(s=>pl.some(p=>p.id===s.province_id)),months)}
+   <div class="tscroll"><table class="dt"><thead><tr><th>Province</th><th>Sites</th><th>Complétude</th><th>Validées</th><th>Femmes</th><th>Hommes</th><th>Total</th><th>R-TRIM</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.p.nom)}</td><td>${r.sl.length}</td><td>${r.c.att?r.c.pct+" %":"–"}</td><td>${r.a.valide}/${r.a.n}</td><td>${r.a.f}</td><td>${r.a.h}</td><td><b>${r.a.t}</b></td><td>${r.tt} / ${trims.length}</td></tr>`).join("")}<tr><td><b>Région</b></td><td>${rows.reduce((s,r)=>s+r.sl.length,0)}</td><td></td><td>${tot.valide}/${tot.n}</td><td>${tot.f}</td><td>${tot.h}</td><td><b>${tot.t}</b></td><td></td></tr></tbody></table></div></div>
+  <div class="panel"><h3>Présences par province</h3><div class="bars">${rows.map(r=>`<div class="bar" title="${esc(r.p.nom)} : ${r.a.t}"><span class="lab">${esc(r.p.nom)}</span><span class="track"><span class="fillb" style="width:${Math.round(100*r.a.t/max)}%"></span></span><span class="num">${r.a.t}</span></div>`).join("")}</div></div>
+  <div class="panel"><h3>Contrôle de cohérence</h3>${alerts.length?`<ul class="warnlist">${alerts.map(a=>`<li>${a}</li>`).join("")}</ul>`:`<p class="okline">Aucune incohérence détectée.</p>`}</div>
+  ${transBox(t,"Transmission au SSEC",isAdmin||niveau==="drsje","tr-sem")}`;
+}
+
+/* ---- tableaux de bord ---- */
+function tabTB(){
+  const months=monthsOf(F.per), sl=visibleSites(), L=presIn(sl.map(s=>s.id),months);
+  const byMonth=months.map(mo=>{ const a=agg(L.filter(p=>p.mois===mo)); return [mo,a]; });
+  const maxM=Math.max(1,...byMonth.map(([,a])=>a.t));
+  let unitRows, unitLabel;
+  if(!F.reg && canSeeAll()){ unitLabel="Région"; unitRows=REG.map(r=>[r.nom, sl.filter(s=>siteProv(s)?.region_id===r.id)]); }
+  else if(!F.prov && (canSeeAll()||niveau==="drsje")){ const rid=+F.reg||meReg; unitLabel="Province"; unitRows=PROV.filter(p=>p.region_id===rid).map(p=>[p.nom, sl.filter(s=>s.province_id===p.id)]); }
+  else { unitLabel="Site"; unitRows=sl.map(s=>[s.nom,[s]]); }
+  return `${filterBar("tb",{site:niveau!=="promoteur"})}
+  <p class="cap" style="margin:0">${esc(terrLabel())} · ${perLabel(F.per)}${F.reg?" · "+esc(regById(F.reg)?.nom||""):""}${F.prov?" · "+esc(provById(F.prov)?.nom||""):""}</p>
+  ${kpis(sl,months)}
+  <div class="panel"><h3>Présences par mois</h3><div class="legend"><span><i class="seg2"></i>Femmes</span><span><i class="seg3"></i>Hommes</span></div>
+   <div class="bars">${byMonth.map(([mo,a])=>`<div class="bar"><span class="lab">${MOIS[mo-1]}</span><span class="track" style="width:${Math.round(100*a.t/maxM)}%">${a.f?`<span class="seg2" style="width:${Math.round(100*a.f/(a.t||1))}%;height:100%" title="Femmes : ${a.f}"></span>`:""}${a.h?`<span class="seg3" style="width:${Math.round(100*a.h/(a.t||1))}%;height:100%" title="Hommes : ${a.h}"></span>`:""}</span><span class="num">${a.t}</span></div>`).join("")}</div></div>
+  <div class="panel"><h3>Par ${unitLabel.toLowerCase()}</h3><div class="tscroll"><table class="dt"><thead><tr><th>${unitLabel}</th><th>Sites</th><th>Complétude</th><th>Femmes</th><th>Hommes</th><th>Total</th><th>% femmes</th></tr></thead><tbody>${unitRows.map(([nom,ss])=>{ const a=agg(presIn(ss.map(s=>s.id),months)), c=completude(ss,months); return `<tr><td>${esc(nom)}</td><td>${ss.length}</td><td>${c.att?c.pct+" %":"–"}</td><td>${a.f}</td><td>${a.h}</td><td><b>${a.t}</b></td><td>${a.t?a.pf+" %":"–"}</td></tr>`; }).join("")}</tbody></table></div></div>`;
+}
+function tabTrans(){
+  const rowsR=REG.map(r=>{ const cells=[1,2].map(sm=>trans.find(t=>t.type==="R-SEM"&&t.region_id===r.id&&t.periode===`${F.annee}-S${sm}`)); return [r,cells]; });
+  const pl=PROV.filter(p=>!F.reg||p.region_id===+F.reg);
+  const cell=t=>t?`<span class="st valide" title="${esc(t.commentaire||"")}">${new Date(t.transmis_le).toLocaleDateString("fr-FR")}</span>`:`<span class="st manque">—</span>`;
+  return `<div class="row-actions"><button class="btn primary" data-act="csvbase">Exporter la base centrale (CSV)</button><span class="msg" id="spt-msg"></span></div>
+  ${filterBar("none",{site:false})}
+  <div class="panel"><h3>Rapports semestriels des régions (DRSJE)</h3><div class="tscroll"><table class="dt"><thead><tr><th>Région</th><th>1er semestre</th><th>2nd semestre</th></tr></thead><tbody>${rowsR.filter(([r])=>!F.reg||r.id===+F.reg).map(([r,c])=>`<tr><td>${esc(r.nom)}</td><td>${cell(c[0])}</td><td>${cell(c[1])}</td></tr>`).join("")}</tbody></table></div></div>
+  <div class="panel"><h3>Rapports trimestriels des provinces (DPSJE)</h3><div class="tscroll"><table class="dt"><thead><tr><th>Province</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th></tr></thead><tbody>${pl.map(p=>`<tr><td>${esc(p.nom)} <span class="n">(${esc(regById(p.region_id)?.nom||"")})</span></td>${[1,2,3,4].map(q=>`<td>${cell(trans.find(t=>t.type==="R-TRIM"&&t.province_id===p.id&&t.periode===`${F.annee}-T${q}`))}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+}
+
+/* ---- exports CSV ---- */
+function csvDownload(name, cols, rows){
+  const e=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  saveFile(name, new Blob(["﻿"+[cols.join(";"),...rows.map(r=>r.map(e).join(";"))].join("\r\n")],{type:"text/csv;charset=utf-8"}));
+}
+function presRows(list){ return list.map(p=>{ const s=siteById(p.site_id), pv=siteProv(s), rg=siteReg(s); return [rg?.nom,pv?.nom,s?.nom,s?.localite,s?.activites,s?.promoteur_nom,p.annee,p.semaine,MOIS[p.mois-1],...DAYS.flatMap(([k])=>[p.jours?.[k]?.f??"",p.jours?.[k]?.h??""]),p.total_f,p.total_h,p.total,STATUT[p.statut],p.observations,p.commentaire]; }); }
+const presCols=["Région","Province","Site","Localité","Activité","Promoteur","Année","Semaine","Mois",...DAYS.flatMap(([,l])=>[l+" F",l+" H"]),"Total F","Total H","Total","Statut","Observations","Commentaire contrôle"];
+
+/* ---- actions ---- */
+function bindSpt(){
+  const V=$("v-spt"); const a=(n,fn)=>V.querySelectorAll(`[data-act="${n}"]`).forEach(b=>b.onclick=fn);
+  a("back",()=>{ sptView=null; renderSpt(); });
+  a("newpres",()=>{ const my=niveau==="promoteur"?sites.filter(s=>s.promoteur_id===myId):visibleSites(); const [y,w]=isoWeek(NOW); sptEdit={site_id:(F.site&&siteById(F.site)?F.site:my[0]?.id), annee:y, semaine:w, mois:weekMonth(y,w), jours:{}, statut:"soumis"}; sptView="pres"; confirmZero=false; renderSpt(); window.scrollTo(0,0); });
+  V.querySelectorAll("[data-pres]").forEach(b=>b.onclick=()=>{ sptEdit=JSON.parse(JSON.stringify(pres.find(p=>p.id===b.dataset.pres))); sptView="pres"; confirmZero=false; confirmDel=false; renderSpt(); window.scrollTo(0,0); });
+  a("newsite",()=>{ sptEdit={province_id: niveau==="promoteur"||niveau==="dpsje"?meProv:null, promoteur_nom: niveau==="promoteur"?myName:"", actif:true}; sptView="site"; renderSpt(); });
+  V.querySelectorAll("[data-site]").forEach(b=>b.onclick=()=>{ sptEdit=JSON.parse(JSON.stringify(siteById(b.dataset.site))); sptView="site"; renderSpt(); window.scrollTo(0,0); });
+  a("savepres",savePres); a("savesite",saveSite);
+  a("valid",()=>ctrlPres("valide")); a("corr",()=>ctrlPres("a_corriger"));
+  a("delpres",async()=>{ const m=$("pf-msg"); if(!confirmDel){ confirmDel=true; m.className="msg err"; m.textContent="Touchez à nouveau « Supprimer » pour confirmer."; return; } confirmDel=false;
+    const r=await db.from("presences").delete().eq("id",sptEdit.id).select("id"); if(r.error||!r.data?.length){ m.className="msg err"; m.textContent="Suppression impossible."; return; } await sptLoad(); sptView=null; renderSpt(); });
+  a("delsite",async()=>{ const m=$("sf-msg"); if(!confirmDel){ confirmDel=true; m.className="msg err"; m.textContent="Toutes les fiches de ce site seront supprimées. Touchez à nouveau pour confirmer."; return; } confirmDel=false;
+    const r=await db.from("sites").delete().eq("id",sptEdit.id).select("id"); if(r.error||!r.data?.length){ m.className="msg err"; m.textContent="Suppression impossible."; return; } await sptLoad(); sptView=null; renderSpt(); });
+  // saisie : totaux en direct
+  V.querySelectorAll("[data-day]").forEach(i=>i.oninput=()=>{ const j={}; V.querySelectorAll("[data-day]").forEach(x=>{ (j[x.dataset.day] ||= {})[x.dataset.sx]=x.value; }); DAYS.forEach(([k])=>{ const t=(+j[k]?.f||0)+(+j[k]?.h||0); $("tt-"+k).textContent=t||""; }); const t=totalsOf(j); $("tt-f").innerHTML=`<b>${t.total_f}</b>`; $("tt-h").innerHTML=`<b>${t.total_h}</b>`; $("tt-t").innerHTML=`<b>${t.total}</b>`; });
+  const ps=$("pf-sem"); if(ps && !sptEdit?.id) ps.onchange=()=>{ $("pf-mois").value=weekMonth(+$("pf-annee").value,+ps.value); };
+  const pa=$("pf-annee"); if(pa && !sptEdit?.id) pa.onchange=()=>{ sptEdit.annee=+pa.value; Object.assign(sptEdit, readPresForm(), {annee:+pa.value}); renderSpt(); };
+  // transmissions
+  a("tr-mens",()=>{ const s=siteById(F.site), L=presIn([s.id],[F.mois]), g=agg(L); transmit({type:"R-MENS",periode:perCode("mois"),site_id:s.id,province_id:null,region_id:null,synthese:{fiches:g.n,femmes:g.f,hommes:g.h,total:g.t}}); });
+  a("tr-trim",()=>{ const pid=niveau==="dpsje"?meProv:+F.prov; const sl=sites.filter(s=>s.province_id===pid), g=agg(presIn(sl.map(s=>s.id),monthsOf("trim"))), c=completude(sl,monthsOf("trim")); transmit({type:"R-TRIM",periode:perCode("trim"),site_id:null,province_id:pid,region_id:null,synthese:{sites:sl.length,fiches:g.n,validees:g.valide,femmes:g.f,hommes:g.h,total:g.t,completude:c.pct}}); });
+  a("tr-sem",()=>{ const rid=niveau==="drsje"?meReg:+F.reg; const sl=sites.filter(s=>siteProv(s)?.region_id===rid), g=agg(presIn(sl.map(s=>s.id),monthsOf("sem"))), c=completude(sl,monthsOf("sem")); transmit({type:"R-SEM",periode:perCode("sem"),site_id:null,province_id:null,region_id:rid,synthese:{sites:sl.length,fiches:g.n,validees:g.valide,femmes:g.f,hommes:g.h,total:g.t,completude:c.pct}}); });
+  a("csvpres",()=>{ const months=F.moisSel?[F.moisSel]:monthsOf("annee"); csvDownload(`fiches_hebdo_${F.annee}.csv`,presCols,presRows(presIn(visibleSites().map(s=>s.id),months))); });
+  a("csvbase",()=>{ F.site=""; csvDownload(`base_centrale_spt_${F.annee}.csv`,presCols,presRows(presIn(visibleSites().map(s=>s.id),monthsOf("annee")))); });
+  a("csvrap",()=>{ const per = sptTab==="rapport" ? (niveau==="promoteur"?"mois":niveau==="dpsje"?"trim":"sem") : "annee";
+    let sl = niveau==="promoteur"?[siteById(F.site)] : niveau==="dpsje"?sites.filter(s=>s.province_id===meProv) : niveau==="drsje"?sites.filter(s=>siteProv(s)?.region_id===meReg) : visibleSites();
+    if(isAdmin && per==="trim") sl=sites.filter(s=>s.province_id===+F.prov); if(isAdmin && per==="sem") sl=sites.filter(s=>siteProv(s)?.region_id===+F.reg);
+    csvDownload(`rapport_${perCode(per)}.csv`,presCols,presRows(presIn(sl.filter(Boolean).map(s=>s.id),monthsOf(per)))); });
+}
+
+/* ---- modules (administrateur) ---- */
+function setMod(m){
+  mod=m; document.querySelectorAll("#modbar [data-mod]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mod===m));
+  $("navrow").querySelector(".tabs").hidden = m!=="carnets";
+  if(m==="carnets"){ $("v-spt").hidden=true; $("v-comptes").hidden=true; view(tab||"list"); if(!list.length) loadAll().then(sync); }
+  else if(m==="spt"){ showSpt(); (sptLoaded?Promise.resolve():sptLoad()).then(renderSpt); }
+  else { ["v-list","v-dash","v-fiche","v-result","evalfilter-row","top-actions","footbar","v-spt"].forEach(id=>$(id).hidden=true); $("v-comptes").hidden=false; $("navrow").hidden=false; loadTerritoires().then(()=>loadProfiles()).then(()=>renderEvMgr("evmgr2")); }
+}
+document.querySelectorAll("#modbar [data-mod]").forEach(b=>b.onclick=()=>setMod(b.dataset.mod));
+async function loadProfiles(){ const r=await db.from("profiles").select("*").order("created_at").then(x=>x,e=>({error:e})); if(!r.error){ profiles=r.data; profiles.forEach(p=>names[p.id]=p.nom||p.email); } }
+
+/* ---------- mode hors ligne : cache local + file d'envoi ---------- */
+const LS = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
+             set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch{ return false; } },
+             del(k){ try{ localStorage.removeItem(k); }catch{} } };
+var offlineMode=false, syncing=false;
+const isNetErr = e => !navigator.onLine || /fetch|network|load failed|timeout|offline|abort/i.test(String(e&&(e.message||e.details||e)||""));
+const kCache = () => "cs:cache:"+myId, kOut = () => "cs:outbox:"+myId;
+const outbox = () => (myId && LS.get(kOut())) || {};
+function saveCache(){ if(!myId) return; LS.set(kCache(), {list, profiles, me:{name:myName, isAdmin}, at:Date.now()}); }
+function queueLocal(row){
+  const ob=outbox(); const prev=ob[row.id];
+  ob[row.id]={row, isNew: prev ? prev.isNew : !cur._exists, owner: cur.owner||myId};
+  if(!LS.set(kOut(),ob)){ $("savestate").textContent="Mémoire de l'appareil pleine : saisie NON enregistrée"; return false; }
+  cur._pending=true; dirty=false;
+  $("savestate").textContent="Enregistré sur cet appareil · envoi automatique au retour de la connexion";
+  const x=JSON.parse(JSON.stringify({...cur, updatedAt:Date.now(), updatedBy:myId})); const i=list.findIndex(y=>y.id===x.id); if(i>=0) list[i]=x; else list.unshift(x);
+  saveCache(); updateNetUI(); renderList(); return true;
+}
+function updateNetUI(){
+  const el=$("netstate"); if(!el) return;
+  const n=myId?Object.keys(outbox()).length:0, off=!navigator.onLine||offlineMode;
+  el.hidden = !off && !n;
+  el.className = "net"+(off?" off":n?" wait":"");
+  el.textContent = off ? ("● Hors ligne"+(n?` · ${n} à envoyer`:"")) : (syncing?`↻ Envoi de ${n} carnet${n>1?"s":""}…`:`↻ ${n} à envoyer`);
+}
+async function sync(){
+  if(syncing || !myId || !navigator.onLine) { updateNetUI(); return; }
+  if(!(niveau==="evaluateur"||isAdmin)) return;
+  let ob=outbox(); const ids=Object.keys(ob);
+  let session=null; try{ ({data:{session}} = await sb.auth.getSession()); }catch{}
+  if(!session){ if(ids.length){ $("list-msg").className="msg err"; $("list-msg").textContent="Reconnectez-vous pour envoyer les carnets enregistrés sur cet appareil."; } return; }
+  if(offlineMode && !ids.length){ offlineMode=false; await loadAll(); return; }
+  if(!ids.length){ updateNetUI(); return; }
+  syncing=true; updateNetUI(); let sent=0, failed=0;
+  for(const id of ids){
+    const e=ob[id];
+    let r = e.isNew ? await db.from("participants").insert({...e.row, owner:e.owner}).select("id,f").then(x=>x,er=>({error:er}))
+                    : await db.from("participants").update(e.row).eq("id",id).select("id,f").then(x=>x,er=>({error:er}));
+    if(r.error && r.error.code==="23505") r = await db.from("participants").update(e.row).eq("id",id).select("id,f").then(x=>x,er=>({error:er}));
+    if(r.error){ if(isNetErr(r.error)) break; failed++; continue; }
+    if(!r.data || !r.data.length){ failed++; continue; }
+    ob=outbox(); if(ob[id] && ob[id].row.updated_at===e.row.updated_at){ delete ob[id]; } else if(ob[id]) { ob[id].isNew=false; }
+    LS.set(kOut(),ob); sent++;
+    if(cur && cur.id===id){ cur._exists=true; cur._pending=!!ob[id]; const code=r.data[0].f&&r.data[0].f.code; if(code && !cur.f.code){ cur.f.code=code; $("f-code").value=code; $("f-title").textContent=[cur.f.nom,code].filter(Boolean).join(" · "); $("savestate").textContent="Envoyé ✓ · code "+code; } }
+  }
+  syncing=false;
+  const left=Object.keys(outbox()).length, m=$("list-msg");
+  if(sent){ offlineMode=false; await loadAll(); m.className="msg ok"; m.textContent=`${sent} carnet${sent>1?"s":""} envoyé${sent>1?"s":""}.`+(left?` ${left} restant${left>1?"s":""}.`:""); }
+  if(failed){ m.className="msg err"; m.textContent=`${failed} carnet${failed>1?"s":""} refusé${failed>1?"s":""} par le serveur (compte désactivé ?). Ils restent sur cet appareil.`; }
+  updateNetUI();
+}
+window.addEventListener("online", async ()=>{ updateNetUI(); if(niveau==="evaluateur"||isAdmin) sync(); const n=await sptSync(); if(n||sptOffline){ await sptLoad(); if(mod==="spt") renderSpt(); } });
+window.addEventListener("offline", ()=>{ updateNetUI(); });
+setInterval(async ()=>{ if(!navigator.onLine || !myId) return; if(Object.keys(outbox()).length || offlineMode) sync(); if(sptQueue().length){ const n=await sptSync(); if(n){ await sptLoad(); if(mod==="spt") renderSpt(); } } }, 30000);
+
+/* ---------- PWA : installation et mode hors ligne de l'interface ---------- */
+let deferredPrompt=null;
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const dismissed = () => { try{ return localStorage.getItem("install-dismissed")==="1"; }catch{ return false; } };
+if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredPrompt=e; if(!isStandalone() && !dismissed()) $("install-bar").hidden=false; });
+window.addEventListener("appinstalled",()=>{ $("install-bar").hidden=true; deferredPrompt=null; });
+$("install-btn").onclick=async()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice.catch(()=>{}); deferredPrompt=null; $("install-bar").hidden=true; };
+$("install-close").onclick=()=>{ $("install-bar").hidden=true; try{ localStorage.setItem("install-dismissed","1"); }catch{} };
+if(/iphone|ipad|ipod/i.test(navigator.userAgent) && !isStandalone() && !dismissed()){
+  $("install-txt").textContent="Pour installer l'application sur iPhone ou iPad : touchez le bouton Partager, puis « Sur l'écran d'accueil ».";
+  $("install-btn").hidden=true; $("install-bar").hidden=false;
+}
+
+if(!sb){ document.querySelector(".wrap").insertAdjacentHTML("beforeend",'<p class="msg err">Connexion au serveur impossible. Vérifiez votre connexion internet puis rechargez la page.</p>'); }
+else start();
+</script>
+
+</body>
+</html>

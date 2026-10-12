@@ -1,0 +1,140 @@
+[
+ {
+  "export": {
+   "version": 1,
+   "exporte_le": "2026-10-12T10:00:00+00:00",
+   "users": [
+    {
+     "id": "11111111-1111-4111-8111-111111111111",
+     "email": "Admin@MSJE.bf",
+     "password": "$2a$04$aIYhTK1/ynnffUO2IWqa.uvnOj4M8ZD/Fr0mYP6MWokLwcNfUUeky",
+     "nom": "Admin",
+     "role": "admin",
+     "actif": true,
+     "niveau": "evaluateur",
+     "province_id": null,
+     "region_id": null,
+     "created_at": "2026-10-01T14:06:10.21274+00:00"
+    },
+    {
+     "id": "22222222-2222-4222-8222-222222222222",
+     "email": "eval@msje.bf",
+     "password": "$2a$04$aIYhTK1/ynnffUO2IWqa.uvnOj4M8ZD/Fr0mYP6MWokLwcNfUUeky",
+     "nom": "Évaluatrice",
+     "role": "evaluateur",
+     "actif": true,
+     "niveau": "evaluateur",
+     "province_id": null,
+     "region_id": null,
+     "created_at": "2026-10-02T09:00:00+00:00"
+    },
+    {
+     "id": "33333333-3333-4333-8333-333333333333",
+     "email": "promo@msje.bf",
+     "password": "$2a$04$aIYhTK1/ynnffUO2IWqa.uvnOj4M8ZD/Fr0mYP6MWokLwcNfUUeky",
+     "nom": "Promoteur",
+     "role": "evaluateur",
+     "actif": true,
+     "niveau": "promoteur",
+     "province_id": 32,
+     "region_id": 5,
+     "created_at": "2026-10-03T09:00:00+00:00"
+    }
+   ],
+   "participants": [
+    {
+     "id": "p-abc",
+     "owner": "22222222-2222-4222-8222-222222222222",
+     "f": {
+      "nom": "Ouédraogo Awa",
+      "code": "SS-2026-0004",
+      "sexe": "F"
+     },
+     "p": {
+      "T0": {
+       "poids": "80"
+      },
+      "M6": {},
+      "M12": {}
+     },
+     "created_at": "2026-10-05T10:00:00+00:00",
+     "updated_at": "2026-10-06T10:00:00.5+00:00",
+     "updated_by": "11111111-1111-4111-8111-111111111111"
+    },
+    {
+     "id": "p-def",
+     "owner": "11111111-1111-4111-8111-111111111111",
+     "f": {
+      "nom": "Kaboré Issa",
+      "code": "SS-2026-0005"
+     },
+     "p": {},
+     "created_at": "2026-10-05T11:00:00+00:00",
+     "updated_at": "2026-10-05T11:00:00+00:00",
+     "updated_by": null
+    }
+   ],
+   "sites": [
+    {
+     "id": "44444444-4444-4444-8444-444444444444",
+     "nom": "Terrain de Zogona",
+     "province_id": 32,
+     "localite": "Zogona",
+     "activites": "Aérobic",
+     "promoteur_id": "33333333-3333-4333-8333-333333333333",
+     "promoteur_nom": null,
+     "profession": "Enseignant",
+     "sexe": "H",
+     "age": 41,
+     "telephone": "70112233",
+     "actif": true,
+     "created_at": "2026-10-07T08:00:00+00:00",
+     "updated_at": "2026-10-07T08:00:00+00:00"
+    }
+   ],
+   "presences": [
+    {
+     "id": "55555555-5555-4555-8555-555555555555",
+     "site_id": "44444444-4444-4444-8444-444444444444",
+     "annee": 2026,
+     "semaine": 41,
+     "mois": 10,
+     "jours": {
+      "lun": {
+       "f": 2,
+       "h": 3
+      }
+     },
+     "total_f": 2,
+     "total_h": 3,
+     "total": 5,
+     "observations": null,
+     "statut": "valide",
+     "commentaire": "ok",
+     "saisi_par": "33333333-3333-4333-8333-333333333333",
+     "controle_par": "11111111-1111-4111-8111-111111111111",
+     "controle_le": "2026-10-09T08:00:00+00:00",
+     "created_at": "2026-10-08T08:00:00+00:00",
+     "updated_at": "2026-10-09T08:00:00+00:00"
+    }
+   ],
+   "transmissions": [
+    {
+     "id": "66666666-6666-4666-8666-666666666666",
+     "type": "R-MENS",
+     "periode": "2026-10",
+     "site_id": "44444444-4444-4444-8444-444444444444",
+     "province_id": null,
+     "region_id": null,
+     "commentaire": "RAS",
+     "synthese": {
+      "total": 5
+     },
+     "transmis_par": "33333333-3333-4333-8333-333333333333",
+     "transmis_le": "2026-10-10T08:00:00+00:00"
+    }
+   ],
+   "compteur": 6
+  }
+ }
+]
