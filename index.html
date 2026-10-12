@@ -303,7 +303,18 @@ table.dt .n{color:var(--muted);font-size:.72rem}
       <button class="btn primary" type="submit" id="auth-go">Se connecter</button>
       <span class="msg" id="auth-msg" role="status"></span>
     </form>
+    <p class="sub" style="margin:0" id="auth-forgot-row"><button class="linkbtn" id="auth-forgot">Mot de passe oublié ?</button></p>
     <p class="sub" style="margin:0"><span id="auth-switch-txt">Pas encore de compte ?</span> <button class="linkbtn" id="auth-switch">Créer un compte</button></p>
+  </section>
+  <section id="v-reset" hidden class="auth">
+    <h2>Nouveau mot de passe</h2>
+    <p class="sub">Choisissez un nouveau mot de passe pour votre compte (6 caractères minimum).</p>
+    <form id="reset-form" style="display:flex;flex-direction:column;gap:12px" novalidate>
+      <label class="fld"><span class="l">Nouveau mot de passe</span><input id="reset-p1" type="password" autocomplete="new-password" minlength="6" required></label>
+      <label class="fld"><span class="l">Confirmer le mot de passe</span><input id="reset-p2" type="password" autocomplete="new-password" minlength="6" required></label>
+      <button class="btn primary" type="submit" id="reset-go">Enregistrer le mot de passe</button>
+      <span class="msg" id="reset-msg" role="status"></span>
+    </form>
   </section>
   <section id="v-pending" hidden class="auth">
     <h2>Compte en attente</h2>
@@ -447,6 +458,7 @@ const SECTIONS = [
 /* ---------- state ---------- */
 const SUPABASE_URL = "https://opnmdbnrbipwqqblbtfw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_WcnFmSjd1d5MpcBSuU6OIg_6luqp1CZ";
+const RECOVERY = /type=recovery/.test(location.hash), AUTH_ERR = /error_code=/.test(location.hash);
 const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 let firstLoad=true, db=sb, downloads=true, myId=null, myName="", isAdmin=false, profiles=[];
 function saveFile(name, blob){ const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }
@@ -1002,7 +1014,7 @@ async function updProfile(id, patch){
 
 /* ---------- auth ---------- */
 let signup=false;
-const APPV=["v-list","v-dash","v-fiche","v-result","v-pending","navrow","evalfilter-row","top-actions","footbar","v-spt","v-comptes","modbar"];
+const APPV=["v-list","v-dash","v-fiche","v-result","v-pending","navrow","evalfilter-row","top-actions","footbar","v-spt","v-comptes","modbar","v-reset"];
 function showHome(note){ APPV.forEach(id=>$(id).hidden=true); $("v-auth").hidden=true; $("apptop").hidden=true; $("v-home").hidden=false;
   const m=$("home-msg"); m.className=note?"msg err":"msg"; m.textContent=note||""; window.scrollTo(0,0); }
 function showAuth(asSignup){ APPV.forEach(id=>$(id).hidden=true); $("v-home").hidden=true; $("apptop").hidden=false; $("v-auth").hidden=false;
@@ -1013,7 +1025,20 @@ $("auth-switch").onclick=()=>{ signup=!signup;
   $("auth-sub").textContent=signup?"Après création, l'administrateur doit activer votre compte.":"Connectez-vous avec le compte que vous avez créé.";
   $("auth-nom-row").hidden=!signup; $("auth-niv-row").hidden=!signup; authNivChange(); $("auth-go").textContent=signup?"Créer mon compte":"Se connecter";
   $("auth-switch-txt").textContent=signup?"Déjà un compte ?":"Pas encore de compte ?"; $("auth-switch").textContent=signup?"Se connecter":"Créer un compte";
-  $("auth-pass").autocomplete=signup?"new-password":"current-password"; $("auth-msg").textContent=""; };
+  $("auth-pass").autocomplete=signup?"new-password":"current-password"; $("auth-msg").textContent=""; $("auth-forgot-row").hidden=signup; };
+$("auth-forgot").onclick=async()=>{ const m=$("auth-msg"), email=$("auth-email").value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){ m.className="msg err"; m.textContent="Saisissez d'abord votre adresse email ci-dessus, puis touchez « Mot de passe oublié ? »."; $("auth-email").focus(); return; }
+  m.className="msg"; m.textContent="Envoi du lien…";
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  if(error){ m.className="msg err"; m.textContent=/rate|security purposes/i.test(error.message)?"Trop de demandes : réessayez dans quelques minutes.":"Envoi impossible : "+error.message; return; }
+  m.className="msg ok"; m.textContent="Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé. Ouvrez-le sur cet appareil (pensez à regarder dans les spams)."; };
+$("reset-form").addEventListener("submit",async e=>{ e.preventDefault(); const m=$("reset-msg"), a=$("reset-p1").value, b=$("reset-p2").value; m.className="msg err";
+  if(a.length<6){ m.textContent="Le mot de passe doit faire au moins 6 caractères."; return; }
+  if(a!==b){ m.textContent="Les deux mots de passe ne sont pas identiques."; return; }
+  $("reset-go").disabled=true; m.className="msg"; m.textContent="Enregistrement…";
+  const {error}=await sb.auth.updateUser({password:a}); $("reset-go").disabled=false;
+  if(error){ m.className="msg err"; m.textContent=/different from the old/i.test(error.message)?"Choisissez un mot de passe différent de l'ancien.":/expired|invalid|session/i.test(error.message)?"Le lien a expiré. Redemandez un lien depuis « Mot de passe oublié ? ».":"Erreur : "+error.message; return; }
+  history.replaceState(null,"",location.pathname); $("v-reset").hidden=true; start(); });
 $("auth-form").addEventListener("submit", async e=>{
   e.preventDefault(); const m=$("auth-msg"); m.className="msg err";
   const email=$("auth-email").value.trim(), pass=$("auth-pass").value, nom=$("auth-nom").value.trim();
@@ -1057,6 +1082,8 @@ $("refresh").onclick=async()=>{ if(mod==="spt"){ await sptSync(); await sptLoad(
 /* ---------- boot ---------- */
 async function start(){
   let session=null; try{ ({data:{session}} = await sb.auth.getSession()); }catch{}
+  if(RECOVERY && session && !start.recovered){ start.recovered=true; APPV.forEach(id=>$(id).hidden=true); $("v-home").hidden=true; $("v-auth").hidden=true; $("apptop").hidden=false; $("v-reset").hidden=false; $("reset-p1").focus(); return; }
+  if(AUTH_ERR && !session && !start.recovered){ start.recovered=true; history.replaceState(null,"",location.pathname); showAuth(false); $("auth-msg").className="msg err"; $("auth-msg").textContent="Ce lien de réinitialisation a expiré ou a déjà servi. Redemandez-en un ci-dessous."; return; }
   const last=LS.get("cs:lastuser");
   let prof=null;
   if(!session){
